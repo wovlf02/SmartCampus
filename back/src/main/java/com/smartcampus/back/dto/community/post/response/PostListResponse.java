@@ -1,6 +1,6 @@
 package com.smartcampus.back.dto.community.post.response;
 
-import com.smartcampus.back.entity.community.Post;
+import com.hamcam.back.entity.community.Post;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.data.domain.Page;
@@ -73,5 +73,15 @@ public class PostListResponse {
                 list.size(),
                 content
         );
+    }
+
+    private PostListResponse(List<PostSimpleResponse> posts, int currentPage, int totalPages) {
+        this.posts = posts;
+        this.currentPage = currentPage;
+        this.totalPages = totalPages;
+    }
+
+    public static PostListResponse of(Page<PostSimpleResponse> page) {
+        return new PostListResponse(page.getContent(), page.getNumber(), page.getTotalPages());
     }
 }

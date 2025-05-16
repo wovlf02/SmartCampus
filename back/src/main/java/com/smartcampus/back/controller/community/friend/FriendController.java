@@ -1,19 +1,22 @@
 package com.smartcampus.back.controller.community.friend;
 
 import com.smartcampus.back.dto.common.MessageResponse;
-
-import com.smartcampus.back.dto.friend.request.FriendAcceptRequest;
-import com.smartcampus.back.dto.friend.request.FriendRejectRequest;
-import com.smartcampus.back.dto.friend.response.FriendListResponse;
-import com.smartcampus.back.dto.friend.response.FriendRequestListResponse;
-import com.smartcampus.back.dto.friend.response.FriendSearchResponse;
-import com.smartcampus.back.dto.friend.response.BlockedFriendListResponse;
-import com.smartcampus.back.entity.friend.FriendRequest;
-import com.smartcampus.back.service.friend.FriendService;
+import com.smartcampus.back.dto.community.friend.request.FriendAcceptRequest;
+import com.smartcampus.back.dto.community.friend.request.FriendRejectRequest;
+import com.smartcampus.back.dto.community.friend.request.FriendRequestSendRequest;
+import com.smartcampus.back.dto.community.friend.response.FriendListResponse;
+import com.smartcampus.back.dto.community.friend.response.FriendRequestListResponse;
+import com.smartcampus.back.dto.community.friend.response.FriendSearchResponse;
+import com.smartcampus.back.dto.community.friend.response.BlockedFriendListResponse;
+import com.smartcampus.back.dto.community.report.request.ReportRequest;
+import com.smartcampus.back.service.community.friend.FriendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 친구 관련 API 컨트롤러
+ */
 @RestController
 @RequestMapping("/api/friends")
 @RequiredArgsConstructor
@@ -22,10 +25,10 @@ public class FriendController {
     private final FriendService friendService;
 
     /**
-     * 친구 요청
+     * 친구 요청 전송
      */
     @PostMapping("/request")
-    public ResponseEntity<MessageResponse> sendFriendRequest(@RequestBody FriendRequest request) {
+    public ResponseEntity<MessageResponse> sendFriendRequest(@RequestBody FriendRequestSendRequest request) {
         friendService.sendFriendRequest(request);
         return ResponseEntity.ok(new MessageResponse("친구 요청이 전송되었습니다."));
     }
@@ -33,7 +36,7 @@ public class FriendController {
     /**
      * 친구 요청 수락
      */
-    @PostMapping("/accept")
+    @PostMapping("/request/{requestId}/accept")
     public ResponseEntity<MessageResponse> acceptFriendRequest(@RequestBody FriendAcceptRequest request) {
         friendService.acceptFriendRequest(request);
         return ResponseEntity.ok(new MessageResponse("친구 요청을 수락했습니다."));
@@ -42,7 +45,7 @@ public class FriendController {
     /**
      * 친구 요청 거절
      */
-    @PostMapping("/reject")
+    @PostMapping("/request/{requestId}/reject")
     public ResponseEntity<MessageResponse> rejectFriendRequest(@RequestBody FriendRejectRequest request) {
         friendService.rejectFriendRequest(request);
         return ResponseEntity.ok(new MessageResponse("친구 요청을 거절했습니다."));
@@ -51,7 +54,7 @@ public class FriendController {
     /**
      * 친구 목록 조회
      */
-    @GetMapping("/list")
+    @GetMapping
     public ResponseEntity<FriendListResponse> getFriendList() {
         return ResponseEntity.ok(friendService.getFriendList());
     }
@@ -91,7 +94,7 @@ public class FriendController {
     }
 
     /**
-     * 차단 해제
+     * 사용자 차단 해제
      */
     @DeleteMapping("/block/{userId}")
     public ResponseEntity<MessageResponse> unblockUser(@PathVariable Long userId) {
@@ -100,7 +103,7 @@ public class FriendController {
     }
 
     /**
-     * 내가 차단한 사용자 목록 조회
+     * 차단한 사용자 목록 조회
      */
     @GetMapping("/blocked")
     public ResponseEntity<BlockedFriendListResponse> getBlockedUsers() {

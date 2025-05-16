@@ -1,30 +1,30 @@
-package com.smartcampus.back.service.friend;
+package com.smartcampus.back.service.community.friend;
 
-import com.smartcampus.back.dto.friend.request.FriendAcceptRequest;
-import com.smartcampus.back.dto.friend.request.FriendRejectRequest;
-import com.smartcampus.back.dto.friend.response.BlockedFriendListResponse;
-import com.smartcampus.back.dto.friend.response.FriendListResponse;
-import com.smartcampus.back.dto.friend.response.FriendRequestListResponse;
-import com.smartcampus.back.dto.friend.response.FriendSearchResponse;
+import com.smartcampus.back.dto.community.friend.request.FriendAcceptRequest;
+import com.smartcampus.back.dto.community.friend.request.FriendRejectRequest;
+import com.smartcampus.back.dto.community.friend.request.FriendRequestSendRequest;
+import com.smartcampus.back.dto.community.friend.response.*;
+import com.smartcampus.back.dto.community.report.request.ReportRequest;
 import com.smartcampus.back.entity.auth.User;
-import com.smartcampus.back.entity.friend.Friend;
-import com.smartcampus.back.entity.friend.FriendBlock;
-import com.smartcampus.back.entity.friend.FriendRequest;
+import com.smartcampus.back.entity.friend.*;
+import com.smartcampus.back.global.exception.CustomException;
 import com.smartcampus.back.repository.auth.UserRepository;
 import com.smartcampus.back.repository.friend.FriendBlockRepository;
+import com.smartcampus.back.repository.friend.FriendReportRepository;
 import com.smartcampus.back.repository.friend.FriendRepository;
 import com.smartcampus.back.repository.friend.FriendRequestRepository;
+import com.smartcampus.back.security.auth.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * 친구 관련 서비스
- * <p>
- * 친구 요청/수락/삭제, 차단, 검색, 목록 조회 등 모든 기능을 처리합니다.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,46 +33,51 @@ public class FriendService {
     private final FriendRepository friendRepository;
     private final FriendRequestRepository friendRequestRepository;
     private final FriendBlockRepository friendBlockRepository;
+    private final FriendReportRepository friendReportRepository;
     private final UserRepository userRepository;
 
     private Long getCurrentUserId() {
-        return 1L; // 인증 시스템 연동 시 변경
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) throw new CustomException("로그인 정보가 없습니다.");
+
+        Object principal = auth.getPrincipal();
+        if (principal instanceof CustomUserDetails userDetails) {
+            return userDetails.getUserId();
+        }
+
+        throw new CustomException("사용자 정보를 불러올 수 없습니다.");
     }
 
     private User getCurrentUser() {
-        return User.builder().id(getCurrentUserId()).build();
+        return userRepository.findById(getCurrentUserId())
+                .orElseThrow(() -> new CustomException("사용자 정보를 불러올 수 없습니다."));
     }
 
     /**
      * 친구 요청 전송
      */
-    public void sendFriendRequest(FriendRequest request) {
+    public void sendFriendRequest(FriendRequestSendRequest request) {
         User sender = getCurrentUser();
-        User receiver = userRepository.findById(request.getReceiver().getId())
+        User receiver = userRepository.findById(request.getTargetUserId())
                 .orElseThrow(() -> new IllegalArgumentException("대상 사용자가 존재하지 않습니다."));
 
-        // 자신에게 요청 불가
-        if (sender.getId().equals(receiver.getId()))
+        if (sender.getId().equals(receiver.getId())) {
             throw new IllegalArgumentException("자기 자신에게 친구 요청을 보낼 수 없습니다.");
+        }
 
-        // 이미 친구인 경우
-        boolean alreadyFriend = friendRepository.existsByUserAndFriend(sender, receiver) ||
-                friendRepository.existsByUserAndFriend(receiver, sender);
-        if (alreadyFriend)
-            throw new IllegalStateException("이미 친구인 사용자입니다.");
+        if (friendRepository.existsByUserAndFriend(sender, receiver) ||
+                friendRepository.existsByUserAndFriend(receiver, sender)) {
+            throw new IllegalStateException("이미 친구 관계입니다.");
+        }
 
-        // 중복 요청 방지
-        boolean alreadyRequested = friendRequestRepository
-                .findBySenderAndReceiver(sender, receiver)
-                .isPresent();
-        if (alreadyRequested)
+        if (friendRequestRepository.findBySenderAndReceiver(sender, receiver).isPresent()) {
             throw new IllegalStateException("이미 친구 요청을 보냈습니다.");
+        }
 
-        FriendRequest friendRequest = FriendRequest.builder()
+        friendRequestRepository.save(FriendRequest.builder()
                 .sender(sender)
                 .receiver(receiver)
-                .build();
-        friendRequestRepository.save(friendRequest);
+                .build());
     }
 
     /**
@@ -97,7 +102,7 @@ public class FriendService {
      */
     public void rejectFriendRequest(FriendRejectRequest request) {
         User receiver = getCurrentUser();
-        User sender = userRepository.findById(request.getRequestId())
+        User sender = userRepository.findById(request.getReceiverId())
                 .orElseThrow(() -> new IllegalArgumentException("보낸 사용자가 존재하지 않습니다."));
 
         FriendRequest friendRequest = friendRequestRepository
@@ -117,11 +122,11 @@ public class FriendService {
         return new FriendListResponse(
                 friends.stream()
                         .map(f -> f.getUser().equals(me) ? f.getFriend() : f.getUser())
+                        .distinct()
                         .map(FriendListResponse.FriendDto::from)
                         .collect(Collectors.toList())
         );
     }
-
 
     /**
      * 받은 친구 요청 목록 조회
@@ -140,13 +145,31 @@ public class FriendService {
      * 사용자 닉네임으로 검색
      */
     public FriendSearchResponse searchUsersByNickname(String nickname) {
+        User me = getCurrentUser();
         List<User> users = userRepository.findByNicknameContaining(nickname);
+
         return new FriendSearchResponse(
                 users.stream()
-                        .map(FriendSearchResponse.UserSearchResult::from)
-                        .collect(Collectors.toList())
+                        .filter(user -> !user.getId().equals(me.getId())) // 자기 자신 제외
+                        .map(user -> {
+                            boolean alreadyFriend = friendRepository.existsByUserAndFriend(me, user)
+                                    || friendRepository.existsByUserAndFriend(user, me);
+                            boolean alreadyRequested = friendRequestRepository.existsBySenderAndReceiver(me, user);
+                            boolean isBlocked = friendBlockRepository.existsByBlockerAndBlocked(me, user);
+
+                            return new FriendSearchResponse.UserSearchResult(
+                                    user.getId(),
+                                    user.getNickname(),
+                                    user.getProfileImageUrl(),
+                                    alreadyFriend,
+                                    alreadyRequested,
+                                    isBlocked
+                            );
+                        })
+                        .toList()
         );
     }
+
 
     /**
      * 친구 삭제
@@ -156,11 +179,8 @@ public class FriendService {
         User target = userRepository.findById(friendId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        Optional<Friend> friend1 = friendRepository.findByUserAndFriend(me, target);
-        Optional<Friend> friend2 = friendRepository.findByUserAndFriend(target, me);
-
-        friend1.ifPresent(friendRepository::delete);
-        friend2.ifPresent(friendRepository::delete);
+        friendRepository.findByUserAndFriend(me, target).ifPresent(friendRepository::delete);
+        friendRepository.findByUserAndFriend(target, me).ifPresent(friendRepository::delete);
     }
 
     /**
@@ -171,18 +191,17 @@ public class FriendService {
         User target = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("차단 대상 사용자가 존재하지 않습니다."));
 
-        if (me.getId().equals(userId))
+        if (me.getId().equals(target.getId())) {
             throw new IllegalArgumentException("자기 자신은 차단할 수 없습니다.");
+        }
 
-        boolean alreadyBlocked = friendBlockRepository.findByBlockerAndBlocked(me, target).isPresent();
-        if (!alreadyBlocked) {
+        if (friendBlockRepository.findByBlockerAndBlocked(me, target).isEmpty()) {
             friendBlockRepository.save(FriendBlock.builder()
                     .blocker(me)
                     .blocked(target)
                     .build());
         }
 
-        // 친구 상태였다면 삭제
         deleteFriend(userId);
     }
 
@@ -199,7 +218,7 @@ public class FriendService {
     }
 
     /**
-     * 내가 차단한 사용자 목록
+     * 내가 차단한 사용자 목록 조회
      */
     public BlockedFriendListResponse getBlockedUsers() {
         User me = getCurrentUser();
@@ -209,5 +228,40 @@ public class FriendService {
                         .map(block -> BlockedFriendListResponse.BlockedUserDto.from(block.getBlocked()))
                         .collect(Collectors.toList())
         );
+    }
+
+    /**
+     * 사용자 신고 처리
+     *
+     * @param reportedUserId 신고 대상 사용자 ID
+     * @param request 신고 요청 (신고 사유 포함)
+     */
+    public void reportUser(Long reportedUserId, ReportRequest request) {
+        User reporter = getCurrentUser();
+
+        if (reporter.getId().equals(reportedUserId)) {
+            throw new IllegalArgumentException("자기 자신은 신고할 수 없습니다.");
+        }
+
+        User reported = userRepository.findById(reportedUserId)
+                .orElseThrow(() -> new IllegalArgumentException("신고 대상 사용자가 존재하지 않습니다."));
+
+        boolean alreadyReported = friendReportRepository
+                .findByReporterAndReported(reporter, reported)
+                .isPresent();
+
+        if (alreadyReported) {
+            throw new IllegalStateException("이미 해당 사용자를 신고했습니다.");
+        }
+
+        FriendReport report = FriendReport.builder()
+                .reporter(reporter)
+                .reported(reported)
+                .reason(request.getReason())
+                .status(FriendReportStatus.PENDING)
+                .reportedAt(LocalDateTime.now())
+                .build();
+
+        friendReportRepository.save(report);
     }
 }

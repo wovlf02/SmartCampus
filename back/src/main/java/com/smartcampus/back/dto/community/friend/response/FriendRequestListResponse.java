@@ -1,4 +1,4 @@
-package com.smartcampus.back.dto.friend.response;
+package com.smartcampus.back.dto.community.friend.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.smartcampus.back.entity.friend.FriendRequest;
+import com.hamcam.back.entity.friend.FriendRequest;
 
 /**
  * 받은 친구 요청 목록 응답 DTO

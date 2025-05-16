@@ -4,52 +4,80 @@ import com.smartcampus.back.entity.auth.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 /**
- * 친구 관계(Friend) 엔티티
- * - 사용자가 등록한 친구 관계 정보를 나타냅니다.
+ * 친구 관계 엔티티 (MySQL 기반)
  */
 @Entity
+@Table(
+        name = "friend", // ✅ 테이블 소문자
+        uniqueConstraints = @UniqueConstraint(name = "uk_user_friend", columnNames = {"user_id", "friend_id"}),
+        indexes = {
+                @Index(name = "idx_friend_user", columnList = "user_id"),
+                @Index(name = "idx_friend_friend", columnList = "friend_id"),
+                @Index(name = "idx_friend_is_deleted", columnList = "is_deleted")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(
-        name = "FRIEND",
-        uniqueConstraints = @UniqueConstraint(name = "UK_USER_FRIEND", columnNames = {"USER_ID", "FRIEND_ID"})
-)
 public class Friend {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "friend_seq_generator")
-    @SequenceGenerator(name = "friend_seq_generator", sequenceName = "FRIEND_SEQ", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ MySQL 기본 키 전략
     private Long id;
 
     /**
-     * 사용자 (친구 요청을 보낸 사용자)
+     * 친구 요청 보낸 사용자
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USER_ID", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     /**
-     * 친구 (친구 요청을 받은 사용자)
+     * 친구 요청 받은 사용자
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "FRIEND_ID", nullable = false)
+    @JoinColumn(name = "friend_id", nullable = false)
     private User friend;
 
     /**
-     * 친구 관계 생성 날짜
+     * 친구 등록 일시
      */
-    @Column(name = "CREATED_AT", nullable = false)
-    private String createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     /**
-     * 친구 관계 생성 시 날짜 초기화
+     * 논리 삭제 여부
      */
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
+
+    /**
+     * 친구 삭제 일시
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @PrePersist
     protected void onCreate() {
-        this.createdAt = java.time.LocalDateTime.now().toString();
+        this.createdAt = LocalDateTime.now();
+        if (!this.isDeleted) this.isDeleted = false;
+    }
+
+    // ===== 비즈니스 로직 =====
+
+    public void softDelete() {
+        this.isDeleted = true;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void restore() {
+        this.isDeleted = false;
+        this.deletedAt = null;
     }
 }

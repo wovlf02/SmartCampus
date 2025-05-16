@@ -1,6 +1,6 @@
 package com.smartcampus.back.dto.community.post.response;
 
-import com.smartcampus.back.entity.community.Post;
+import com.hamcam.back.entity.community.Post;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,52 +16,29 @@ import java.time.LocalDateTime;
 @Builder
 public class PostSummaryResponse {
 
-    /**
-     * 게시글 ID
-     */
-    private Long postId;
+    private Long postId;             // 게시글 ID
+    private String title;            // 게시글 제목
+    private String content;          // 게시글 본문 (미리보기용)
+    private String writerNickname;  // 작성자 닉네임
+    private int likeCount;           // 좋아요 수
+    private int viewCount;           // 조회수
+    private int commentCount;        // 댓글 수
+    private int imageCount;          // 첨부파일 개수
+    private LocalDateTime createdAt; // 작성일시
 
     /**
-     * 게시글 제목
-     */
-    private String title;
-
-    /**
-     * 게시글 작성자 닉네임
-     */
-    private String writer;
-
-    /**
-     * 게시글 카테고리
-     */
-    private String category;
-
-    /**
-     * 좋아요 수
-     */
-    private int likeCount;
-
-    /**
-     * 조회수
-     */
-    private int viewCount;
-
-    /**
-     * 작성일시
-     */
-    private LocalDateTime createdAt;
-
-    /**
-     * Post 엔티티로부터 요약 응답 DTO 생성
+     * Post 엔티티로부터 응답 DTO 생성
      */
     public static PostSummaryResponse from(Post post) {
         return PostSummaryResponse.builder()
                 .postId(post.getId())
                 .title(post.getTitle())
-                .writer(post.getWriter().getNickname())
-                .category(post.getCategory())
+                .content(post.getContent())
+                .writerNickname(post.getWriter().getNickname())
                 .likeCount(post.getLikeCount())
                 .viewCount(post.getViewCount())
+                .commentCount(post.getCommentCount())
+                .imageCount(post.getAttachments() != null ? post.getAttachments().size() : 0)
                 .createdAt(post.getCreatedAt())
                 .build();
     }

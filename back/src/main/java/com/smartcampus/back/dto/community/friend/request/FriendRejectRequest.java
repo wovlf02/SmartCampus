@@ -1,4 +1,4 @@
-package com.smartcampus.back.dto.friend.request;
+package com.smartcampus.back.dto.community.friend.request;
 
 import lombok.Data;
 
@@ -19,5 +19,5 @@ public class FriendRejectRequest {
     /**
      * 거절할 친구 요청 ID
      */
-    private Long requestId;
+    private Long receiverId;
 }

@@ -1,4 +1,4 @@
-package com.smartcampus.back.dto.friend.response;
+package com.smartcampus.back.dto.community.friend.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

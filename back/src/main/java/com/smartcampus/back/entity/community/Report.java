@@ -7,82 +7,96 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 신고(Report) 엔티티
- * - 사용자, 게시글, 댓글, 대댓글, 다른 사용자를 신고한 내역을 저장합니다.
+ * 신고 엔티티 (MySQL 기반)
  */
 @Entity
+@Table(
+        name = "report",
+        indexes = {
+                @Index(name = "idx_report_reporter", columnList = "reporter_id"),
+                @Index(name = "idx_report_post", columnList = "post_id"),
+                @Index(name = "idx_report_comment", columnList = "comment_id"),
+                @Index(name = "idx_report_reply", columnList = "reply_id"),
+                @Index(name = "idx_report_target_user", columnList = "target_user_id"),
+                @Index(name = "idx_report_status", columnList = "status")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "REPORT")
 public class Report {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "report_seq_generator")
-    @SequenceGenerator(name = "report_seq_generator", sequenceName = "REPORT_SEQ", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ MySQL 기본 키 전략
     private Long id;
 
-    /**
-     * 신고 사유
-     */
-    @Column(name = "REASON", nullable = false, length = 500)
+    @Column(name = "reason", nullable = false, length = 500)
     private String reason;
 
-    /**
-     * 신고 상태 (예: PENDING, RESOLVED 등)
-     */
-    @Column(name = "STATUS", nullable = false, length = 50)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 50)
+    private ReportStatus status;
 
-    /**
-     * 신고 생성 날짜
-     */
-    @Column(name = "REPORTED_AT", nullable = false)
+    @Column(name = "reported_at", nullable = false, updatable = false)
     private LocalDateTime reportedAt;
 
-    /**
-     * 신고자 (사용자)
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "REPORTER_ID", nullable = false)
+    @JoinColumn(name = "reporter_id", nullable = false)
     private User reporter;
 
-    /**
-     * 신고 대상: 게시글
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "POST_ID")
+    @JoinColumn(name = "post_id")
     private Post post;
 
-    /**
-     * 신고 대상: 댓글
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "COMMENT_ID")
+    @JoinColumn(name = "comment_id")
     private Comment comment;
 
-    /**
-     * 신고 대상: 대댓글
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "REPLY_ID")
+    @JoinColumn(name = "reply_id")
     private Reply reply;
 
-    /**
-     * 신고 대상: 사용자
-     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "TARGET_USER_ID")
+    @JoinColumn(name = "target_user_id")
     private User targetUser;
 
-    /**
-     * 신고 생성 시 시간 초기화
-     */
     @PrePersist
     protected void onCreate() {
         this.reportedAt = LocalDateTime.now();
-        this.status = "PENDING"; // 기본 상태값 설정
+        if (this.status == null) {
+            this.status = ReportStatus.PENDING;
+        }
+    }
+
+    // ===== 유효성 체크 메서드 =====
+
+    public boolean isPostReport() {
+        return post != null && comment == null && reply == null && targetUser == null;
+    }
+
+    public boolean isCommentReport() {
+        return comment != null && post == null && reply == null && targetUser == null;
+    }
+
+    public boolean isReplyReport() {
+        return reply != null && post == null && comment == null && targetUser == null;
+    }
+
+    public boolean isUserReport() {
+        return targetUser != null && post == null && comment == null && reply == null;
+    }
+
+    /**
+     * 올바른 단일 대상이 설정되어 있는지 확인
+     */
+    public boolean isValidTarget() {
+        int count = 0;
+        if (post != null) count++;
+        if (comment != null) count++;
+        if (reply != null) count++;
+        if (targetUser != null) count++;
+        return count == 1;
     }
 }

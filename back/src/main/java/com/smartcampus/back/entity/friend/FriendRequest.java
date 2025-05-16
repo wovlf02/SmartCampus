@@ -7,67 +7,117 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * 친구 요청(FriendRequest) 엔티티
- * - 사용자가 특정 사용자에게 친구 요청을 보낸 내역을 저장합니다.
- * - 요청 상태 및 생성 시각 등 정보를 포함합니다.
+ * 친구 요청 엔티티 (MySQL 기반)
  */
 @Entity
+@Table(
+        name = "friend_request", // ✅ 테이블명 소문자
+        uniqueConstraints = @UniqueConstraint(name = "uk_sender_receiver", columnNames = {"sender_id", "receiver_id"}),
+        indexes = {
+                @Index(name = "idx_sender", columnList = "sender_id"),
+                @Index(name = "idx_receiver", columnList = "receiver_id"),
+                @Index(name = "idx_status", columnList = "status")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(
-        name = "FRIEND_REQUEST",
-        uniqueConstraints = @UniqueConstraint(name = "UK_SENDER_RECEIVER", columnNames = {"SENDER_ID", "RECEIVER_ID"})
-)
 public class FriendRequest {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "friend_request_seq_generator")
-    @SequenceGenerator(name = "friend_request_seq_generator", sequenceName = "FRIEND_REQUEST_SEQ", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ MySQL 자동 증가 키
     private Long id;
 
     /**
-     * 친구 요청 전송 사용자
+     * 요청 보낸 사용자
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "SENDER_ID", nullable = false)
+    @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
     /**
-     * 친구 요청 수신 사용자
+     * 요청 받은 사용자
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "RECEIVER_ID", nullable = false)
+    @JoinColumn(name = "receiver_id", nullable = false)
     private User receiver;
 
     /**
      * 요청 생성 시각
      */
-    @Column(name = "REQUESTED_AT", nullable = false)
+    @Column(name = "requested_at", nullable = false, updatable = false)
     private LocalDateTime requestedAt;
 
     /**
-     * 요청 상태 (예: PENDING, ACCEPTED, REJECTED)
+     * 응답 시각
      */
-    @Column(name = "STATUS", nullable = false, length = 20)
-    private String status;
+    @Column(name = "responded_at")
+    private LocalDateTime respondedAt;
 
     /**
-     * 요청 생성 시 기본 정보 초기화
+     * 요청 상태
      */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private FriendRequestStatus status;
+
+    /**
+     * 논리 삭제 여부
+     */
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
+
+    /**
+     * 삭제 시각
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @PrePersist
     protected void onCreate() {
-        this.requestedAt = LocalDateTime.now(); // 요청 생성 시각 자동 설정
-        this.status = "PENDING"; // 기본 상태 "PENDING"
+        if (this.requestedAt == null) this.requestedAt = LocalDateTime.now();
+        if (this.status == null) this.status = FriendRequestStatus.PENDING;
+        this.isDeleted = false;
     }
 
-    /**
-     * 요청 생성 시각 반환
-     * - 추가적인 Getter 메소드. 필요 시 DTO 변환에 사용 가능.
-     */
-    public LocalDateTime getRequestedAt() {
-        return this.requestedAt;
+    // ===== 비즈니스 로직 =====
+
+    public void accept() {
+        if (this.status != FriendRequestStatus.PENDING) return;
+        this.status = FriendRequestStatus.ACCEPTED;
+        this.respondedAt = LocalDateTime.now();
+    }
+
+    public void reject() {
+        if (this.status != FriendRequestStatus.PENDING) return;
+        this.status = FriendRequestStatus.REJECTED;
+        this.respondedAt = LocalDateTime.now();
+    }
+
+    public void softDelete() {
+        this.isDeleted = true;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void restore() {
+        this.isDeleted = false;
+        this.deletedAt = null;
+    }
+
+    // ===== 상태 유틸 =====
+
+    public boolean isPending() {
+        return this.status == FriendRequestStatus.PENDING;
+    }
+
+    public boolean isAccepted() {
+        return this.status == FriendRequestStatus.ACCEPTED;
+    }
+
+    public boolean isRejected() {
+        return this.status == FriendRequestStatus.REJECTED;
     }
 }

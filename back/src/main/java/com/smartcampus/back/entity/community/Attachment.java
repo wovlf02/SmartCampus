@@ -1,14 +1,21 @@
 package com.smartcampus.back.entity.community;
 
+import com.smartcampus.back.entity.chat.ChatMessage;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.beans.factory.annotation.Value;
+
+import java.time.LocalDateTime;
 
 /**
- * 첨부파일(Attachment) 엔티티
+ * 첨부파일 엔티티 (MySQL 기반)
  */
 @Entity
-@Table(name = "ATTACHMENT")
+@Table(name = "attachment",
+        indexes = {
+                @Index(name = "idx_attachment_post", columnList = "post_id"),
+                @Index(name = "idx_attachment_chat_message", columnList = "chat_message_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,67 +24,80 @@ import org.springframework.beans.factory.annotation.Value;
 public class Attachment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "attachment_seq_generator")
-    @SequenceGenerator(name = "attachment_seq_generator", sequenceName = "ATTACHMENT_SEQ", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ MySQL 기본 전략
     private Long id;
 
     /**
-     * 사용자가 업로드한 원본 파일명
+     * 원본 파일명
      */
-    @Column(name = "ORIGINAL_FILE_NAME", nullable = false, length = 255)
+    @Column(name = "original_file_name", nullable = false, length = 255)
     private String originalFileName;
 
     /**
-     * 서버에 저장된 파일명 (UUID 포함)
+     * 저장 파일명 (UUID 포함)
      */
-    @Column(name = "STORED_FILE_NAME", nullable = false, length = 500)
+    @Column(name = "stored_file_name", nullable = false, length = 500)
     private String storedFileName;
 
     /**
-     * MIME 타입 (예: image/png, application/pdf 등)
+     * MIME 타입 (예: image/png, application/pdf)
      */
-    @Column(name = "CONTENT_TYPE", length = 100)
+    @Column(name = "content_type", length = 100)
     private String contentType;
 
     /**
-     * 이미지 미리보기 가능 여부 (프론트에서 썸네일 지원 용도)
+     * 미리보기 가능 여부 (이미지 등)
      */
-    @Column(name = "PREVIEW_AVAILABLE", nullable = false)
+    @Column(name = "preview_available", nullable = false)
     private boolean previewAvailable;
 
     /**
-     * 첨부파일이 연결된 게시글
+     * 파일 크기 (byte 단위)
+     */
+    @Column(name = "file_size")
+    private Long fileSize;
+
+    /**
+     * 생성 시각
+     */
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    /**
+     * 게시글 첨부파일
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "POST_ID")
+    @JoinColumn(name = "post_id")
     private Post post;
 
     /**
-     * 첨부파일이 연결된 댓글
+     * 채팅 첨부파일
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "COMMENT_ID")
-    private Comment comment;
+    @JoinColumn(name = "chat_message_id")
+    private ChatMessage chatMessage;
 
     /**
-     * 첨부파일이 연결된 대댓글
+     * 업로드 기본 경로
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "REPLY_ID")
-    private Reply reply;
+    public static final String DEFAULT_BASE_URL = "/uploads";
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 
     /**
-     * 파일 저장 경로
-     */
-    @Transient
-    @Value("${file.storage.base-url:/uploads}")
-    private String baseUrl;
-
-    /**
-     * 파일 URL 반환
-     * - 파일이 저장된 서버의 URL 경로를 반환합니다.
+     * 파일 접근 경로 반환
      */
     public String getFileUrl() {
-        return String.format("%s/%s", baseUrl, storedFileName);
+        return (storedFileName != null) ? DEFAULT_BASE_URL + "/" + storedFileName : null;
+    }
+
+    /**
+     * 게시글 또는 채팅 중 하나에만 연결되었는지 유효성 확인
+     */
+    public boolean isValidAttachment() {
+        return (post != null && chatMessage == null) || (post == null && chatMessage != null);
     }
 }

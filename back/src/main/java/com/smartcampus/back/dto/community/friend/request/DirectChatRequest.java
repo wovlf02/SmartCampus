@@ -1,4 +1,4 @@
-package com.smartcampus.back.dto.friend.request;
+package com.smartcampus.back.dto.community.friend.request;
 
 import lombok.Data;
 

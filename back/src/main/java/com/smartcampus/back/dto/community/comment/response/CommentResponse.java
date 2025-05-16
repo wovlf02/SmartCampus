@@ -1,7 +1,7 @@
 package com.smartcampus.back.dto.community.comment.response;
 
-import com.smartcampus.back.entity.community.Comment;
-import com.smartcampus.back.entity.community.Reply;
+import com.hamcam.back.entity.community.Comment;
+import com.hamcam.back.entity.community.Reply;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -28,7 +28,7 @@ public class CommentResponse {
     private LocalDateTime updatedAt;
     private int likeCount;
     private boolean liked;
-    private List<ReplyResponse> replies;
+        private List<ReplyResponse> replies;
 
     /**
      * Comment → CommentResponse 변환 정적 메서드
@@ -37,20 +37,24 @@ public class CommentResponse {
      * @param replies 대댓글 리스트
      * @return 댓글 응답 DTO
      */
-    public static CommentResponse from(Comment comment, List<Reply> replies) {
+    public static CommentResponse from(Comment comment, List<Reply> replies, Long currentUserId) {
+        boolean liked = comment.getLikes().stream()
+                .anyMatch(like -> like.getUser().getId().equals(currentUserId));
+
         return new CommentResponse(
                 comment.getId(),
                 comment.getWriter().getId(),
-                comment.getWriter().getUsername(), // 닉네임으로 따로 필드 있을 경우 수정
-                comment.getWriter().getProfileImageUrl(), // User 엔티티에 해당 필드 필요
+                comment.getWriter().getNickname(), // ✅ 닉네임 필드 사용
+                comment.getWriter().getProfileImageUrl(),
                 comment.getContent(),
                 comment.getCreatedAt(),
                 comment.getUpdatedAt(),
-                comment.getLikes().size(), // Like 리스트 필요
-                false, // 임시 liked 값 (SecurityContextHolder 도입 시 수정)
+                comment.getLikes().size(),
+                liked,
                 replies.stream()
-                        .map(ReplyResponse::from)
+                        .map(reply -> ReplyResponse.from(reply, currentUserId))
                         .collect(Collectors.toList())
         );
     }
+
 }

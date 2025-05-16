@@ -1,6 +1,6 @@
 package com.smartcampus.back.dto.community.post.response;
 
-import com.hamcam.back.entity.community.Post;
+import com.smartcampus.back.entity.community.Post;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

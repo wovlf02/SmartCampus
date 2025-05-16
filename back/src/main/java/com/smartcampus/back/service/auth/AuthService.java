@@ -1,13 +1,14 @@
 package com.smartcampus.back.service.auth;
 
 import com.smartcampus.back.dto.auth.request.*;
-import com.smartcampus.back.entity.auth.University;
-import com.smartcampus.back.entity.auth.User;
 import com.smartcampus.back.dto.auth.response.LoginResponse;
 import com.smartcampus.back.dto.auth.response.TokenResponse;
+import com.smartcampus.back.entity.auth.University;
+import com.smartcampus.back.entity.auth.User;
 import com.smartcampus.back.global.exception.CustomException;
 import com.smartcampus.back.config.auth.JwtProvider;
 import com.smartcampus.back.global.exception.ErrorCode;
+import com.smartcampus.back.global.security.SecurityUtil;
 import com.smartcampus.back.repository.auth.UniversityRepository;
 import com.smartcampus.back.repository.auth.UserRepository;
 import com.smartcampus.back.service.util.MailService;
@@ -19,10 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
-/**
- * 인증 및 회원가입 관련 로직을 담당하는 AuthService 구현 클래스입니다.
- * 인터페이스 없이 단일 구현체로 사용됩니다.
- */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -33,7 +30,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
-    private final UniversityService universityService;
+    private final SecurityUtil securityUtil;
     private final UniversityRepository universityRepository;
 
     public Boolean checkUsername(UsernameCheckRequest request) {
@@ -49,7 +46,7 @@ public class AuthService {
     }
 
     public String sendVerificationCode(EmailSendRequest request) {
-        String code = String.valueOf((int)(Math.random() * 900000) + 100000); // 6자리 랜덤 코드
+        String code = String.valueOf((int) (Math.random() * 900000) + 100000);
         redisTemplate.opsForValue().set("EMAIL:CODE:" + request.getEmail(), code, Duration.ofMinutes(3));
         mailService.sendVerificationCode(request.getEmail(), code, request.getType());
         return "인증코드가 이메일로 발송되었습니다.";
@@ -65,30 +62,17 @@ public class AuthService {
         redisTemplate.delete("EMAIL:CODE:" + request.getEmail());
     }
 
-    /**
-     * 회원가입
-     */
     public void register(RegisterRequest request) {
-        // 사용자 아이디와 이메일 중복 체크
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new CustomException("이미 존재하는 아이디입니다.");
-        }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new CustomException("이미 존재하는 이메일입니다.");
-        }
-
-        // 사용자가 선택한 학교 정보 조회
         University university = universityRepository.findById(request.getUniversityId())
-                .orElseThrow(() -> new CustomException("잘못된 학교 ID입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.UNIVERSITY_NOT_FOUND));
 
-        // User 엔티티 빌드 및 저장
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .nickname(request.getNickname())
                 .profileImageUrl(request.getProfileImageUrl())
-                .university(university) // 선택한 학교 정보 설정
+                .university(university) // ❗ 여기서 오류 안 나게 됨
                 .build();
 
         userRepository.save(user);
@@ -105,15 +89,14 @@ public class AuthService {
 
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);
-        redisTemplate.opsForValue().set("RT:" + user.getId(), refreshToken, Duration.ofDays(14));
 
         return new LoginResponse(accessToken, refreshToken);
     }
 
-
     public void logout(TokenRequest request) {
-        Long userId = jwtProvider.getUserIdFromToken(request.getAccessToken());
+        Long userId = securityUtil.getCurrentUserId();
         redisTemplate.delete("RT:" + userId);
+
         long expiration = jwtProvider.getExpiration(request.getAccessToken());
         redisTemplate.opsForValue().set("BL:" + request.getAccessToken(), "logout", Duration.ofMillis(expiration));
     }
@@ -173,19 +156,15 @@ public class AuthService {
     }
 
     public void updatePassword(PasswordChangeRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new CustomException("사용자를 찾을 수 없습니다."));
+        User user = securityUtil.getCurrentUser();
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
     public void withdraw(PasswordConfirmRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new CustomException("사용자를 찾을 수 없습니다."));
+        User user = securityUtil.getCurrentUser();
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new CustomException("비밀번호가 일치하지 않습니다.");
         }
-
-        user.softDelete();
     }
 }

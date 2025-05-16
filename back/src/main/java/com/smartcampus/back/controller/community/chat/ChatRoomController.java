@@ -1,17 +1,21 @@
-package com.smartcampus.back.controller.chat;
+package com.smartcampus.back.controller.community.chat;
 
-import com.smartcampus.back.dto.chat.request.ChatRoomCreateRequest;
-import com.smartcampus.back.dto.chat.request.ChatJoinRequest;
-import com.smartcampus.back.dto.chat.response.ChatRoomListResponse;
-import com.smartcampus.back.dto.chat.response.ChatRoomResponse;
-import com.smartcampus.back.service.chat.ChatRoomService;
+import com.smartcampus.back.dto.common.MessageResponse;
+import com.smartcampus.back.dto.community.chat.request.ChatRoomCreateRequest;
+import com.smartcampus.back.dto.community.chat.request.ChatJoinRequest;
+import com.smartcampus.back.dto.community.chat.response.ChatRoomListResponse;
+import com.smartcampus.back.dto.community.chat.response.ChatRoomResponse;
+import com.smartcampus.back.service.community.chat.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.smartcampus.back.dto.common.MessageResponse;
 
 import java.util.List;
 
+/**
+ * 채팅방 관리 컨트롤러
+ * - 채팅방 생성, 입장, 퇴장, 조회, 삭제 기능 제공
+ */
 @RestController
 @RequestMapping("/api/chat/rooms")
 @RequiredArgsConstructor
@@ -22,7 +26,7 @@ public class ChatRoomController {
     /**
      * 채팅방 생성
      *
-     * @param request 채팅방 생성 요청 정보
+     * @param request 채팅방 생성 요청
      * @return 생성된 채팅방 정보
      */
     @PostMapping
@@ -32,18 +36,19 @@ public class ChatRoomController {
     }
 
     /**
-     * 전체 채팅방 목록 조회 (관리자 or 전체 공개 대상자)
+     * 로그인한 사용자의 채팅방 목록 조회
      *
-     * @return 채팅방 리스트
+     * @param userId 사용자 ID (✅ 추후 JWT 기반 인증으로 대체 예정)
+     * @return 참여 중인 채팅방 목록
      */
     @GetMapping
-    public ResponseEntity<List<ChatRoomListResponse>> getAllChatRooms() {
-        List<ChatRoomListResponse> response = chatRoomService.getAllChatRooms();
+    public ResponseEntity<List<ChatRoomListResponse>> getMyChatRooms(@RequestParam Long userId) {
+        List<ChatRoomListResponse> response = chatRoomService.getChatRoomsByUserId(userId);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * 특정 채팅방 상세 조회
+     * 채팅방 상세 정보 조회
      *
      * @param roomId 채팅방 ID
      * @return 채팅방 상세 정보
@@ -55,10 +60,10 @@ public class ChatRoomController {
     }
 
     /**
-     * 채팅방 삭제 (내부 로직 또는 빈 채팅방 자동 삭제용)
+     * 채팅방 삭제 (빈 방 또는 관리자가 삭제할 때 사용)
      *
-     * @param roomId 채팅방 ID
-     * @return 삭제 결과 메시지
+     * @param roomId 삭제할 채팅방 ID
+     * @return 삭제 완료 메시지
      */
     @DeleteMapping("/{roomId}")
     public ResponseEntity<MessageResponse> deleteChatRoom(@PathVariable Long roomId) {
@@ -69,9 +74,9 @@ public class ChatRoomController {
     /**
      * 채팅방 입장
      *
-     * @param roomId 채팅방 ID
-     * @param request 입장 요청 정보 (사용자 ID 등)
-     * @return 입장 결과 메시지
+     * @param roomId 입장할 채팅방 ID
+     * @param request 입장 요청 (사용자 ID 포함)
+     * @return 입장 완료 메시지
      */
     @PostMapping("/{roomId}/join")
     public ResponseEntity<MessageResponse> joinChatRoom(
@@ -79,15 +84,15 @@ public class ChatRoomController {
             @RequestBody ChatJoinRequest request
     ) {
         chatRoomService.joinChatRoom(roomId, request);
-        return ResponseEntity.ok(new MessageResponse("채팅방에 입장하였습니다."));
+        return ResponseEntity.ok(new MessageResponse("채팅방에 입장했습니다."));
     }
 
     /**
      * 채팅방 퇴장
      *
-     * @param roomId 채팅방 ID
-     * @param request 퇴장 요청 정보
-     * @return 퇴장 결과 메시지
+     * @param roomId 퇴장할 채팅방 ID
+     * @param request 퇴장 요청 (사용자 ID 포함)
+     * @return 퇴장 완료 메시지
      */
     @DeleteMapping("/{roomId}/exit")
     public ResponseEntity<MessageResponse> exitChatRoom(
@@ -95,6 +100,6 @@ public class ChatRoomController {
             @RequestBody ChatJoinRequest request
     ) {
         chatRoomService.exitChatRoom(roomId, request);
-        return ResponseEntity.ok(new MessageResponse("채팅방에서 나갔습니다."));
+        return ResponseEntity.ok(new MessageResponse("채팅방에서 퇴장했습니다."));
     }
 }

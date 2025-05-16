@@ -4,6 +4,7 @@ import com.smartcampus.back.dto.community.chat.request.ChatMessageRequest;
 import com.smartcampus.back.dto.community.chat.response.ChatMessageResponse;
 import com.smartcampus.back.entity.auth.User;
 import com.smartcampus.back.entity.chat.ChatMessage;
+import com.smartcampus.back.entity.chat.ChatMessageType;
 import com.smartcampus.back.entity.chat.ChatRoom;
 import com.smartcampus.back.global.security.SecurityUtil;
 import com.smartcampus.back.repository.chat.ChatMessageRepository;
@@ -79,15 +80,23 @@ public class ChatMessageService {
      * 채팅 메시지 생성
      */
     private ChatMessage createChatMessage(ChatRoom room, User sender, ChatMessageRequest request) {
+        ChatMessageType messageType;
+        try {
+            messageType = ChatMessageType.valueOf(request.getType().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new IllegalArgumentException("유효하지 않은 메시지 타입입니다: " + request.getType());
+        }
+
         return ChatMessage.builder()
                 .chatRoom(room)
                 .sender(sender)
                 .content(request.getContent())
-                .type(request.getType())
+                .type(messageType)
                 .storedFileName(request.getStoredFileName())
                 .sentAt(LocalDateTime.now())
                 .build();
     }
+
 
     /**
      * ChatMessage → ChatMessageResponse 변환
@@ -100,11 +109,12 @@ public class ChatMessageService {
                 .roomId(message.getChatRoom().getId())
                 .senderId(sender.getId())
                 .nickname(sender.getNickname())
-                .profileUrl(sender.getProfileImageUrl())
+                .profileUrl(sender.getProfileImageUrl() != null ? sender.getProfileImageUrl() : "")
                 .content(message.getContent())
-                .type(message.getType())
+                .type(message.getType().name()) // ✅ enum → String 변환
                 .storedFileName(message.getStoredFileName())
                 .sentAt(message.getSentAt())
                 .build();
     }
+
 }

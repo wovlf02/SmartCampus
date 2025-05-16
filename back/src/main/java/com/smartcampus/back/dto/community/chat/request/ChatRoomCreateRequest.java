@@ -1,6 +1,5 @@
 package com.smartcampus.back.dto.community.chat.request;
 
-import com.hamcam.back.entity.chat.ChatRoomType;
 import lombok.Data;
 
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.smartcampus.back.dto.community.friend.response;
 
-import com.hamcam.back.entity.auth.User;
+import com.smartcampus.back.entity.auth.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

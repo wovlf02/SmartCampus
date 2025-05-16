@@ -1,33 +1,27 @@
 package com.smartcampus.back.controller.auth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.back.dto.auth.request.*;
 import com.smartcampus.back.dto.auth.response.LoginResponse;
 import com.smartcampus.back.dto.auth.response.TokenResponse;
-import com.smartcampus.back.dto.common.MessageResponse;
-import com.smartcampus.back.entity.auth.University;
 import com.smartcampus.back.global.exception.CustomException;
 import com.smartcampus.back.global.response.ApiResponse;
-import com.smartcampus.back.repository.auth.UniversityRepository;
-import com.smartcampus.back.repository.auth.UserRepository;
 import com.smartcampus.back.service.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 인증 및 회원 관련 API를 제공하는 컨트롤러입니다.
@@ -39,9 +33,6 @@ import java.util.UUID;
 public class AuthController {
 
     private final AuthService authService;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final UniversityRepository universityRepository;
 
     /**
      * 아이디 중복 확인
@@ -93,19 +84,19 @@ public class AuthController {
     }
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MessageResponse> register(
+    public ApiResponse<String> register(
             @RequestPart("username") String username,
             @RequestPart("password") String rawPassword,
             @RequestPart("email") String email,
             @RequestPart("nickname") String nickname,
-            @RequestPart("universityName") String universityName,
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
     ) {
         try {
-            // 1. 프로필 이미지 처리
+            // 프로필 이미지 처리
             String profileImageUrl = null;
             if (profileImage != null && !profileImage.isEmpty()) {
-                String storedName = UUID.randomUUID() + "_" + profileImage.getOriginalFilename();
+                String originalFilename = profileImage.getOriginalFilename();
+                String storedName = UUID.randomUUID() + "_" + originalFilename;
                 Path uploadDir = Paths.get("uploads/profile");
                 Files.createDirectories(uploadDir);
                 Path targetPath = uploadDir.resolve(storedName);
@@ -113,23 +104,22 @@ public class AuthController {
                 profileImageUrl = "/uploads/profile/" + storedName;
             }
 
-            // 2. 대학 엔티티 조회
-            University university = universityRepository.findByName(universityName)
-                    .orElseThrow(() -> new CustomException("해당 이름의 대학교를 찾을 수 없습니다: " + universityName));
+            // DTO 생성
+            RegisterRequest request = RegisterRequest.builder()
+                    .username(username)
+                    .password(rawPassword)
+                    .email(email)
+                    .nickname(nickname)
+                    .profileImageUrl(profileImageUrl)
+                    .build();
 
-            // 3. RegisterRequest 구성
-            RegisterRequest request = new RegisterRequest();
-            FieldUtils.writeField(request, "username", username, true);
-            FieldUtils.writeField(request, "password", rawPassword, true);
-            FieldUtils.writeField(request, "email", email, true);
-            FieldUtils.writeField(request, "nickname", nickname, true);
-            FieldUtils.writeField(request, "profileImageUrl", profileImageUrl, true);
-            FieldUtils.writeField(request, "universityId", university.getId(), true);
-
-            // 4. 회원가입 처리
             authService.register(request);
-            return ResponseEntity.ok(new MessageResponse("회원가입이 완료되었습니다."));
+            return ApiResponse.ok("회원가입이 완료되었습니다.");
 
+        } catch (NumberFormatException e) {
+            throw new CustomException("학년(grade)은 숫자여야 합니다.");
+        } catch (IOException e) {
+            throw new CustomException("프로필 이미지 업로드 중 오류가 발생했습니다.");
         } catch (Exception e) {
             log.error("회원가입 중 예외 발생", e);
             throw new CustomException("회원가입 처리 중 오류가 발생했습니다.");

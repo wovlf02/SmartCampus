@@ -1,8 +1,8 @@
 package com.smartcampus.back.repository.community.comment;
 
-import com.hamcam.back.entity.community.Comment;
-import com.hamcam.back.entity.community.Post;
-import com.hamcam.back.entity.community.Reply;
+import com.smartcampus.back.entity.community.Comment;
+import com.smartcampus.back.entity.community.Post;
+import com.smartcampus.back.entity.community.Reply;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

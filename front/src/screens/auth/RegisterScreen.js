@@ -138,18 +138,24 @@ const RegisterScreen = () => {
     }, [username, isUsernameValid, password, passwordConfirm, isPasswordMatch, nickname, selectedUniversity, email, emailDomain, authInput]);
 
     const handleRegister = async () => {
+        if (!selectedUniversity?.id) {
+            Alert.alert('오류', '대학교를 선택해주세요.');
+            return;
+        }
+
         const formData = new FormData();
         formData.append('username', username);
         formData.append('password', password);
         formData.append('email', `${email}@${emailDomain}`);
         formData.append('nickname', nickname);
-        formData.append('universityName', selectedUniversity.name);
+        formData.append('universityId', selectedUniversity.id); // ✅ 수정: name → id 사용
 
         try {
             const response = await api.post('/auth/register', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            if (!response.data.success) {
+
+            if (response.data.success) {
                 Alert.alert('회원가입 성공', response.data.message, [
                     { text: '확인', onPress: () => navigation.navigate('Login') }
                 ]);
@@ -157,13 +163,32 @@ const RegisterScreen = () => {
                 Alert.alert('회원가입 실패', response.data.message);
             }
         } catch (error) {
+            console.error(error);
             Alert.alert('오류', '회원가입 중 문제가 발생했습니다.');
         }
     };
 
+
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>회원가입</Text>
+
+            <View style={styles.universityRow}>
+                <Text style={styles.selectedUniversityText}>
+                    {selectedUniversity?.name || '대학교를 선택해주세요'}
+                </Text>
+                <TouchableOpacity
+                    style={styles.searchButton}
+                    onPress={() => navigation.navigate('UniversitySearch', {
+                        onSelect: (univ) => {
+                            setSelectedUniversity(univ);
+                            navigation.goBack();
+                        }
+                    })}
+                >
+                    <Text style={styles.buttonText}>검색</Text>
+                </TouchableOpacity>
+            </View>
 
             {/* 아이디 + 중복확인 */}
             <View style={styles.inputGroupRow}>
@@ -201,24 +226,6 @@ const RegisterScreen = () => {
                 value={nickname}
                 onChangeText={setNickname}
             />
-
-            <View style={styles.universityRow}>
-                <Text style={styles.selectedUniversityText}>
-                    {selectedUniversity?.name || '대학교를 선택해주세요'}
-                </Text>
-                <TouchableOpacity
-                    style={styles.searchButton}
-                    onPress={() => navigation.navigate('UniversitySearch', {
-                        onSelect: (univ) => {
-                            setSelectedUniversity(univ);
-                            navigation.goBack();
-                        }
-                    })}
-                >
-                    <Text style={styles.buttonText}>검색</Text>
-                </TouchableOpacity>
-            </View>
-
 
             {/* 이메일 입력 */}
             <View style={styles.emailContainer}>

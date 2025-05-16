@@ -1,6 +1,8 @@
 package com.smartcampus.back.service.community.post;
 
-import com.smartcampus.back.dto.community.post.request.*;
+import com.smartcampus.back.dto.community.post.request.PostCreateRequest;
+import com.smartcampus.back.dto.community.post.request.PostUpdateRequest;
+import com.smartcampus.back.dto.community.post.request.ProblemReferenceRequest;
 import com.smartcampus.back.dto.community.post.response.*;
 import com.smartcampus.back.entity.auth.User;
 import com.smartcampus.back.entity.community.Post;

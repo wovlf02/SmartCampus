@@ -1,14 +1,14 @@
 package com.smartcampus.back.service.community.attachment;
 
-import com.hamcam.back.dto.community.attachment.response.AttachmentListResponse;
-import com.hamcam.back.dto.community.attachment.response.AttachmentResponse;
-import com.hamcam.back.entity.community.Attachment;
-import com.hamcam.back.entity.community.Post;
-import com.hamcam.back.global.exception.CustomException;
-import com.hamcam.back.global.exception.ErrorCode;
-import com.hamcam.back.global.security.SecurityUtil;
-import com.hamcam.back.repository.community.attachment.AttachmentRepository;
-import com.hamcam.back.repository.community.post.PostRepository;
+import com.smartcampus.back.dto.community.attachment.response.AttachmentListResponse;
+import com.smartcampus.back.dto.community.attachment.response.AttachmentResponse;
+import com.smartcampus.back.entity.community.Attachment;
+import com.smartcampus.back.entity.community.Post;
+import com.smartcampus.back.global.exception.CustomException;
+import com.smartcampus.back.global.exception.ErrorCode;
+import com.smartcampus.back.global.security.SecurityUtil;
+import com.smartcampus.back.repository.community.attachment.AttachmentRepository;
+import com.smartcampus.back.repository.community.post.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;

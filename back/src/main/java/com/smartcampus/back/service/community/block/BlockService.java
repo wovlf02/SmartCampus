@@ -1,16 +1,22 @@
 package com.smartcampus.back.service.community.block;
 
-import com.hamcam.back.dto.community.block.response.*;
-import com.hamcam.back.entity.auth.User;
-import com.hamcam.back.entity.community.*;
-import com.hamcam.back.global.exception.CustomException;
-import com.hamcam.back.global.exception.ErrorCode;
-import com.hamcam.back.global.security.SecurityUtil;
-import com.hamcam.back.repository.auth.UserRepository;
-import com.hamcam.back.repository.community.block.BlockRepository;
-import com.hamcam.back.repository.community.comment.CommentRepository;
-import com.hamcam.back.repository.community.comment.ReplyRepository;
-import com.hamcam.back.repository.community.post.PostRepository;
+import com.smartcampus.back.dto.community.block.response.BlockedCommentListResponse;
+import com.smartcampus.back.dto.community.block.response.BlockedPostListResponse;
+import com.smartcampus.back.dto.community.block.response.BlockedReplyListResponse;
+import com.smartcampus.back.dto.community.block.response.BlockedTargetResponse;
+import com.smartcampus.back.entity.auth.User;
+import com.smartcampus.back.entity.community.Block;
+import com.smartcampus.back.entity.community.Comment;
+import com.smartcampus.back.entity.community.Post;
+import com.smartcampus.back.entity.community.Reply;
+import com.smartcampus.back.global.exception.CustomException;
+import com.smartcampus.back.global.exception.ErrorCode;
+import com.smartcampus.back.global.security.SecurityUtil;
+import com.smartcampus.back.repository.auth.UserRepository;
+import com.smartcampus.back.repository.community.block.BlockRepository;
+import com.smartcampus.back.repository.community.comment.CommentRepository;
+import com.smartcampus.back.repository.community.comment.ReplyRepository;
+import com.smartcampus.back.repository.community.post.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

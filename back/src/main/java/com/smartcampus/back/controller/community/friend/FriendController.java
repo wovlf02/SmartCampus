@@ -109,4 +109,20 @@ public class FriendController {
     public ResponseEntity<BlockedFriendListResponse> getBlockedUsers() {
         return ResponseEntity.ok(friendService.getBlockedUsers());
     }
+
+    /**
+     * 특정 사용자 신고 요청 처리
+     *
+     * @param userId 신고 대상 사용자 ID
+     * @param request 신고 요청 내용 (신고 사유 등)
+     * @return 신고 처리 결과 메시지
+     */
+    @PostMapping("/report/{userId}")
+    public ResponseEntity<MessageResponse> reportUser(
+            @PathVariable Long userId,
+            @RequestBody ReportRequest request
+    ) {
+        friendService.reportUser(userId, request);
+        return ResponseEntity.ok(new MessageResponse("해당 사용자가 신고되었습니다."));
+    }
 }

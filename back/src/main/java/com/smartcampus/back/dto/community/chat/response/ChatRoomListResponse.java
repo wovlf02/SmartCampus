@@ -50,4 +50,9 @@ public class ChatRoomListResponse {
      * 로그인한 사용자의 안 읽은 메시지 수
      */
     private int unreadCount;
+
+    /**
+     * 대표 이미지 경로 (있을 경우만 프론트에서 보여줌)
+     */
+    private String profileImageUrl;
 }

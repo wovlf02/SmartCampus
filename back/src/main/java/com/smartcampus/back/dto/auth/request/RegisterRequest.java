@@ -25,9 +25,6 @@ public class RegisterRequest {
     @Email(message = "올바른 이메일 형식이어야 합니다.")
     private String email;
 
-    @NotBlank(message = "이름은 필수 입력 값입니다.")
-    private String name;
-
     @NotBlank(message = "닉네임은 필수 입력 값입니다.")
     private String nickname;
 

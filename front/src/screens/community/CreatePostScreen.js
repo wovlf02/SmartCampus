@@ -52,38 +52,37 @@ const CreatePostScreen = () => {
         }
 
         try {
+            const token = await EncryptedStorage.getItem('accessToken');
             const postData = { title, content };
 
-            if (attachments.length === 0) {
-                // 텍스트만 있는 경우
-                await api.post('/community/posts', postData);
-            } else {
-                // 첨부파일이 있는 경우
-                const formData = new FormData();
-                formData.append('post', JSON.stringify(postData));
+            const formData = new FormData();
+            formData.append('post', JSON.stringify(postData));
 
-                attachments.forEach((file, index) => {
-                    formData.append('files', {
-                        uri: file.uri,
-                        type: file.type || 'image/jpeg',
-                        name: file.fileName || `attachment_${index}.jpg`,
-                    });
+            // 첨부파일이 있다면 추가
+            attachments.forEach((file, index) => {
+                formData.append('files', {
+                    uri: file.uri,
+                    type: file.type || 'image/jpeg',
+                    name: file.fileName || `attachment_${index}.jpg`,
                 });
+            });
 
-                await api.post('/community/posts', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-            }
+            await api.post('/community/posts', formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                    // ✅ Content-Type은 생략 (자동으로 boundary 포함됨)
+                },
+            });
 
             Alert.alert('성공', '게시글이 등록되었습니다.');
             navigation.goBack();
         } catch (error) {
-            console.error(error);
+            console.error('게시글 등록 실패:', error);
             Alert.alert('오류', '게시글 등록 중 문제가 발생했습니다.');
         }
     };
+
 
     return (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

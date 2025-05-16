@@ -40,6 +40,7 @@ public class ChatRoomService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
+    private final FileUploadService fileUploadService;
 
     private Long getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -74,16 +75,23 @@ public class ChatRoomService {
 
         ChatRoomType type = (inviteeIds.size() == 1) ? ChatRoomType.DIRECT : ChatRoomType.GROUP;
 
+        // 1. 이미지가 존재하면 저장 처리
+        String imageUrl = null;
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
+            imageUrl = fileUploadService.storeChatRoomImage(request.getImage());
+        }
+
+        // 2. 채팅방 생성
         ChatRoom room = ChatRoom.builder()
                 .name(request.getRoomName())
                 .type(type)
-                .referenceId(request.getReferenceId())
                 .createdAt(LocalDateTime.now())
+                .representativeImageUrl(imageUrl)
                 .build();
 
         chatRoomRepository.save(room);
 
-        // 채팅방 멤버 등록 (자기 자신 포함)
+        // 3. 채팅방 멤버 등록 (자기 자신 포함)
         List<User> members = userRepository.findAllById(
                 Stream.concat(Stream.of(creator.getId()), inviteeIds.stream())
                         .distinct()
@@ -100,8 +108,10 @@ public class ChatRoomService {
 
         chatParticipantRepository.saveAll(chatMembers);
 
+        // 4. 응답 변환
         return toResponse(room);
     }
+
 
 
     /**

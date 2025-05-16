@@ -63,18 +63,25 @@ const PostListScreen = () => {
             setPage(currentPage);
             setSearchMode(false);
         } catch (err) {
-            console.error('게시글 목록 불러오기 실패:', err);
-            setPostsData([]);
-            setHasMore(false);
+            if (err.response?.status === 403) {
+                // 게시글이 없을 때를 위한 예외 처리
+                console.warn('게시글 없음 (403)');
+                setPostsData([]);
+                setHasMore(false);
+            } else {
+                console.error('게시글 목록 불러오기 실패:', err);
+                Alert.alert('오류', '게시글 목록을 불러오지 못했습니다.');
+            }
         } finally {
             setLoading(false);
         }
     };
 
+
     const handleMenuSelect = (screen) => {
         setMenuVisible(false);
         if (screen === 'Chat') navigation.navigate('ChatRoomList');
-        if (screen === 'Friend') navigation.navigate('FriendList');
+        if (screen === 'Friend') navigation.navigate('Friend');
     };
 
     const handleSearch = async (keyword = searchQuery) => {
@@ -200,7 +207,11 @@ const PostListScreen = () => {
                     onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.4}
                     contentContainerStyle={{ paddingBottom: screenHeight * 0.12 }}
-                    ListEmptyComponent={<Text style={styles.emptyText}>검색 결과가 없습니다.</Text>}
+                    ListEmptyComponent={
+                        <Text style={styles.emptyText}>
+                            등록된 게시글이 없습니다.
+                        </Text>
+                    }
                 />
             )}
 

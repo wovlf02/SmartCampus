@@ -89,6 +89,7 @@ public class AuthController {
             @RequestPart("password") String rawPassword,
             @RequestPart("email") String email,
             @RequestPart("nickname") String nickname,
+            @RequestParam("universityId") Long universityId,
             @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
     ) {
         try {
@@ -110,6 +111,7 @@ public class AuthController {
                     .password(rawPassword)
                     .email(email)
                     .nickname(nickname)
+                    .universityId(universityId)
                     .profileImageUrl(profileImageUrl)
                     .build();
 

@@ -1,31 +1,47 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
-import api from '../../api/api'; // 서버 API 호출 파일 import
+import {
+    View,
+    Text,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    Image,
+    Alert,
+    Dimensions,
+} from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import api from '../../api/api';
+import { jwtDecode } from 'jwt-decode';
+
+const { width, height } = Dimensions.get('window');
+
+const platformIcons = {
+    google: require('../../assets/google.png'),
+    kakao: require('../../assets/kakao.png'),
+    naver: require('../../assets/naver.png'),
+    github: require('../../assets/github.png'),
+};
 
 const LoginScreen = ({ navigation }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [passwordVisible, setPasswordVisible] = useState(false);
 
-    // 일반 로그인 처리
     const handleLogin = async () => {
         try {
             const response = await api.post('/auth/login', { username, password });
 
             if (response.status === 200) {
-                const { accessToken, refreshToken, username, email, name } = response.data;
+                const { accessToken, refreshToken } = response.data.data;
 
-                // 🔒 보안 저장소에 Refresh Token 저장
+                const decoded = jwtDecode(accessToken);
+                const userId = decoded.sub;
+
+                await EncryptedStorage.setItem('accessToken', accessToken);
                 await EncryptedStorage.setItem('refreshToken', refreshToken);
+                await EncryptedStorage.setItem('userId', String(userId));
 
-                // 🔄 홈 화면으로 이동하며 사용자 데이터 전달
-                navigation.replace('Main', {
-                    username: username,
-                    email: email,
-                    name: name,
-                    accessToken: accessToken,
-                });
+                navigation.replace('Main');
             }
         } catch (error) {
             console.error(error);
@@ -33,7 +49,6 @@ const LoginScreen = ({ navigation }) => {
         }
     };
 
-    // 소셜 로그인 처리
     const handleSocialLogin = async (platform) => {
         try {
             const response = await api.get(`/auth/${platform}`);
@@ -49,64 +64,58 @@ const LoginScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>로그인</Text>
+            <View style={styles.contentWrapper}>
+                <Text style={styles.title}>로그인</Text>
 
-            {/* 일반 로그인 */}
-            <TextInput
-                style={styles.input}
-                placeholder="아이디"
-                placeholderTextColor="#999"
-                value={username}
-                onChangeText={setUsername}
-            />
-            <View style={styles.passwordContainer}>
                 <TextInput
-                    style={styles.passwordInput}
-                    placeholder="비밀번호"
+                    style={styles.input}
+                    placeholder="아이디"
                     placeholderTextColor="#999"
-                    secureTextEntry={!passwordVisible}
-                    value={password}
-                    onChangeText={setPassword}
+                    value={username}
+                    onChangeText={setUsername}
                 />
-                <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
-                    <Image
-                        source={
-                            passwordVisible
-                                ? require('../../assets/password-show.png')
-                                : require('../../assets/password-hide.png')
-                        }
-                        style={styles.eyeIcon}
+
+                <View style={styles.passwordContainer}>
+                    <TextInput
+                        style={styles.passwordInput}
+                        placeholder="비밀번호"
+                        placeholderTextColor="#999"
+                        secureTextEntry={!passwordVisible}
+                        value={password}
+                        onChangeText={setPassword}
                     />
-                </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                <Text style={styles.loginButtonText}>로그인</Text>
-            </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
+                        <Image
+                            source={
+                                passwordVisible
+                                    ? require('../../assets/password-show.png')
+                                    : require('../../assets/password-hide.png')
+                            }
+                            style={styles.eyeIcon}
+                        />
+                    </TouchableOpacity>
+                </View>
 
-            {/* 소셜 로그인 */}
-            <View style={styles.socialLoginContainer}>
-                <TouchableOpacity onPress={() => handleSocialLogin('google')}>
-                    <Image source={require('../../assets/google.png')} style={styles.socialIcon} />
+                <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                    <Text style={styles.loginButtonText}>로그인</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleSocialLogin('kakao')}>
-                    <Image source={require('../../assets/kakao.png')} style={styles.socialIcon} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleSocialLogin('naver')}>
-                    <Image source={require('../../assets/naver.png')} style={styles.socialIcon} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleSocialLogin('github')}>
-                    <Image source={require('../../assets/github.png')} style={styles.socialIcon} />
-                </TouchableOpacity>
-            </View>
 
-            {/* 계정 찾기 및 회원가입 */}
-            <View style={styles.footer}>
-                <TouchableOpacity onPress={() => navigation.navigate('FindAccount')}>
-                    <Text style={styles.footerText}>계정 찾기</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                    <Text style={styles.footerText}>회원가입</Text>
-                </TouchableOpacity>
+                <View style={styles.socialLoginContainer}>
+                    {Object.keys(platformIcons).map((platform) => (
+                        <TouchableOpacity key={platform} onPress={() => handleSocialLogin(platform)}>
+                            <Image source={platformIcons[platform]} style={styles.socialIcon} />
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                <View style={styles.footer}>
+                    <TouchableOpacity onPress={() => navigation.navigate('FindAccount')}>
+                        <Text style={styles.footerText}>계정 찾기</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                        <Text style={styles.footerText}>회원가입</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -115,33 +124,40 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#E3F2FD',
-        alignItems: 'center',
+        backgroundColor: '#F6FAFE',
+    },
+    contentWrapper: {
+        flex: 1,
         justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: height * 0.05,
+        paddingBottom: height * 0.05,
     },
     title: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: 'bold',
-        color: '#007BFF',
-        marginBottom: 30,
+        color: '#000',
+        marginBottom: 40,
     },
     input: {
-        width: '80%',
-        height: 50,
-        backgroundColor: '#FFFFFF',
-        borderRadius: 25,
+        width: width * 0.8,
+        height: 52,
+        backgroundColor: '#FFF',
+        borderRadius: 30,
         paddingHorizontal: 20,
         marginBottom: 15,
+        elevation: 3,
     },
     passwordContainer: {
-        width: '80%',
-        height: 50,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 25,
+        width: width * 0.8,
+        height: 52,
+        backgroundColor: '#FFF',
+        borderRadius: 30,
         paddingHorizontal: 20,
-        marginBottom: 15,
+        elevation: 3,
+        marginBottom: 20,
     },
     passwordInput: {
         flex: 1,
@@ -151,40 +167,45 @@ const styles = StyleSheet.create({
         height: 24,
     },
     loginButton: {
-        width: '80%',
-        height: 50,
-        backgroundColor: '#007BFF',
-        borderRadius: 25,
+        width: width * 0.8,
+        height: 52,
+        backgroundColor: '#000',
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 15,
+        marginBottom: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 4,
     },
     loginButtonText: {
-        color: '#FFFFFF',
+        color: '#FFF',
         fontSize: 16,
         fontWeight: 'bold',
     },
     socialLoginContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 30,
-        marginBottom: 20,
+        marginBottom: 25,
     },
     socialIcon: {
-        width: 50,
-        height: 50,
-        marginHorizontal: 10,
+        width: 48,
+        height: 48,
+        marginHorizontal: 12,
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        width: '80%',
-        marginTop: 20,
+        width: width * 0.8,
+        marginTop: 15,
     },
     footerText: {
-        fontSize: 14,
-        color: '#007BFF',
+        fontSize: 15,
+        color: '#000',
         textDecorationLine: 'underline',
+        fontWeight: '500',
     },
 });
 

@@ -14,7 +14,7 @@ import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import FastImage from 'react-native-fast-image';
 import api from '../../api/api';
 
-const BASE_URL = 'http://192.168.78.59:8080';
+const BASE_URL = 'http://192.168.0.2:8080';
 const {width: screenWidth, height: screenHeight} = Dimensions.get('window');
 const PostDetailScreen = () => {
     const { postId } = useRoute().params;
@@ -386,25 +386,25 @@ const PostDetailScreen = () => {
 
 
     const handleSubmitComment = async () => {
-      if (!commentInput.trim()) return;
+        if (!commentInput.trim()) return;
 
-      try {
-        if (replyToCommentId) {
-          await api.post(`/community/comments/${replyToCommentId}/replies`, {
-            content: commentInput,
-          });
-        } else {
-          await api.post(`/community/posts/${postId}/comments`, {
-            content: commentInput,
-          });
+        try {
+            if (replyToCommentId) {
+                await api.post(`/community/comments/${replyToCommentId}/replies`, {
+                    content: commentInput,
+                });
+            } else {
+                await api.post(`/community/posts/${postId}/comments`, {
+                    content: commentInput,
+                });
+            }
+
+            setCommentInput('');
+            setReplyToCommentId(null);
+            fetchPost();
+        } catch (err) {
+            Alert.alert('오류', '댓글 또는 대댓글 등록 실패');
         }
-
-        setCommentInput('');
-        setReplyToCommentId(null);
-        fetchPost();
-      } catch (err) {
-        Alert.alert('오류', '댓글 또는 대댓글 등록 실패');
-      }
     };
 
 

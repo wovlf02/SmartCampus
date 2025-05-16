@@ -1,14 +1,20 @@
 package com.smartcampus.back.controller.community.chat;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcampus.back.dto.common.MessageResponse;
 import com.smartcampus.back.dto.community.chat.request.ChatRoomCreateRequest;
 import com.smartcampus.back.dto.community.chat.request.ChatJoinRequest;
 import com.smartcampus.back.dto.community.chat.response.ChatRoomListResponse;
 import com.smartcampus.back.dto.community.chat.response.ChatRoomResponse;
+import com.smartcampus.back.global.exception.CustomException;
+import com.smartcampus.back.global.exception.ErrorCode;
 import com.smartcampus.back.service.community.chat.ChatRoomService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,18 +28,34 @@ import java.util.List;
 public class ChatRoomController {
 
     private final ChatRoomService chatRoomService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * 채팅방 생성
-     *
-     * @param request 채팅방 생성 요청
-     * @return 생성된 채팅방 정보
-     */
-    @PostMapping
-    public ResponseEntity<ChatRoomResponse> createChatRoom(@RequestBody ChatRoomCreateRequest request) {
+    // 채팅방 생성
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ChatRoomResponse> createChatRoom(
+            @RequestPart("roomName") String roomName,
+            @RequestPart("invitedUserIds") String invitedUserIdsJson,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) {
+        List<Long> invitedUserIds;
+        try {
+            invitedUserIds = objectMapper.readValue(
+                    invitedUserIdsJson, new TypeReference<List<Long>>() {});
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT);
+        }
+
+        ChatRoomCreateRequest request = ChatRoomCreateRequest.builder()
+                .roomName(roomName)
+                .invitedUserIds(invitedUserIds)
+                .image(image)
+                .build();
+
         ChatRoomResponse response = chatRoomService.createChatRoom(request);
         return ResponseEntity.ok(response);
     }
+
+
 
     /**
      * 로그인한 사용자의 채팅방 목록 조회

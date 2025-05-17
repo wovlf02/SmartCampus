@@ -6,7 +6,6 @@ import com.smartcampus.back.entity.auth.User;
 import com.smartcampus.back.entity.chat.ChatMessage;
 import com.smartcampus.back.entity.chat.ChatMessageType;
 import com.smartcampus.back.entity.chat.ChatRoom;
-import com.smartcampus.back.global.security.SecurityUtil;
 import com.smartcampus.back.repository.chat.ChatMessageRepository;
 import com.smartcampus.back.repository.chat.ChatRoomRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,26 +27,23 @@ public class ChatMessageService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final SecurityUtil securityUtil;
 
     /**
      * 채팅 메시지 저장 (WebSocket / REST 공통)
      *
-     * @param roomId  채팅방 ID
-     * @param request 채팅 메시지 요청
+     * @param roomId 채팅방 ID
+     * @param sender 인증된 사용자
+     * @param request 메시지 요청 DTO
      * @return 저장된 메시지 응답
      */
-    public ChatMessageResponse sendMessage(Long roomId, ChatMessageRequest request) {
+    public ChatMessageResponse sendMessage(Long roomId, User sender, ChatMessageRequest request) {
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
-
-        // ✅ SecurityContext에서 인증된 사용자 조회
-        User sender = securityUtil.getCurrentUser();
 
         ChatMessage message = createChatMessage(room, sender, request);
         chatMessageRepository.save(message);
 
-        // ✅ 채팅방 마지막 메시지 갱신
+        // 채팅방 마지막 메시지 갱신
         room.setLastMessage(request.getContent());
         room.setLastMessageAt(message.getSentAt());
         chatRoomRepository.save(room);
@@ -55,14 +51,8 @@ public class ChatMessageService {
         return toResponse(message);
     }
 
-
     /**
      * 채팅 메시지 목록 조회 (오래된 순)
-     *
-     * @param roomId 채팅방 ID
-     * @param page 페이지 번호
-     * @param size 한 페이지당 메시지 수
-     * @return 메시지 응답 리스트
      */
     public List<ChatMessageResponse> getMessages(Long roomId, int page, int size) {
         ChatRoom room = chatRoomRepository.findById(roomId)
@@ -77,7 +67,7 @@ public class ChatMessageService {
     }
 
     /**
-     * 채팅 메시지 생성
+     * ChatMessage 생성 로직 (공통)
      */
     private ChatMessage createChatMessage(ChatRoom room, User sender, ChatMessageRequest request) {
         ChatMessageType messageType;
@@ -97,7 +87,6 @@ public class ChatMessageService {
                 .build();
     }
 
-
     /**
      * ChatMessage → ChatMessageResponse 변환
      */
@@ -111,10 +100,9 @@ public class ChatMessageService {
                 .nickname(sender.getNickname())
                 .profileUrl(sender.getProfileImageUrl() != null ? sender.getProfileImageUrl() : "")
                 .content(message.getContent())
-                .type(message.getType().name()) // ✅ enum → String 변환
+                .type(message.getType().name())
                 .storedFileName(message.getStoredFileName())
                 .sentAt(message.getSentAt())
                 .build();
     }
-
 }

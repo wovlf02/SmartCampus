@@ -140,6 +140,7 @@ public class ChatRoomService {
                     .lastMessageAt(lastMessage != null ? lastMessage.getSentAt() : null)
                     .participantCount(chatParticipantRepository.countByChatRoom(room))
                     .unreadCount(unreadCount)
+                    .profileImageUrl(room.getRepresentativeImageUrl())
                     .build();
         }).toList();
     }
@@ -166,11 +167,11 @@ public class ChatRoomService {
      * 채팅방 입장
      */
     @Transactional
-    public void joinChatRoom(Long roomId, ChatJoinRequest request) {
-        ChatRoom room = chatRoomRepository.findById(roomId)
+    public void joinChatRoom(ChatJoinRequest request) {
+        ChatRoom room = chatRoomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
 
-        User user = User.builder().id(request.getUserId()).build(); // 🔐 SecurityUtil 연동 가능
+        User user = User.builder().id(request.getUserId()).build();
         boolean alreadyJoined = chatParticipantRepository.findByChatRoomAndUser(room, user).isPresent();
 
         if (!alreadyJoined) {
@@ -187,8 +188,8 @@ public class ChatRoomService {
      * 채팅방 퇴장 (마지막 사용자가 퇴장 시 자동 삭제)
      */
     @Transactional
-    public void exitChatRoom(Long roomId, ChatJoinRequest request) {
-        ChatRoom room = chatRoomRepository.findById(roomId)
+    public void exitChatRoom(ChatJoinRequest request) {
+        ChatRoom room = chatRoomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("채팅방이 존재하지 않습니다."));
 
         User user = User.builder().id(request.getUserId()).build();
@@ -201,6 +202,7 @@ public class ChatRoomService {
             chatRoomRepository.delete(room);
         }
     }
+
 
     // ================== DTO 변환 ==================
 
@@ -218,9 +220,10 @@ public class ChatRoomService {
                 .roomId(room.getId())
                 .roomName(room.getName())
                 .roomType(room.getType().name())
-                .referenceId(room.getReferenceId())
                 .createdAt(room.getCreatedAt())
+                .representativeImageUrl(room.getRepresentativeImageUrl()) // ✅ 대표 이미지 추가
                 .participants(participants)
                 .build();
     }
+
 }

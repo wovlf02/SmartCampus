@@ -49,7 +49,7 @@ const PostDetailScreen = () => {
         fetchUser();
         increaseViewCount();
         fetchPost();
-    }, [fetchPost, increaseViewCount]);
+    }, [postId]);
 
     const openReportModal = (type, id) => {
         setReportTarget({ type, id });
@@ -191,30 +191,60 @@ const PostDetailScreen = () => {
 
     const handleLikePost = async () => {
         try {
-            await api.post(`/community/likes/posts/${postId}`);  // 서버에서 toggle 처리
-            fetchPost(); // 다시 불러와서 상태 반영
+            const res = await api.post(`/community/likes/posts/${postId}/toggle`); // 서버에서 토글 처리
+            setPost(prev => ({
+                ...prev,
+                liked: !prev.liked,
+                likeCount: prev.liked ? prev.likeCount - 1 : prev.likeCount + 1
+            }));
         } catch (err) {
             Alert.alert('오류', '게시글 좋아요 처리 실패');
         }
     };
 
+
     const handleLikeComment = async (commentId) => {
         try {
-            await api.post(`/community/likes/comments/${commentId}`);
-            fetchPost();
+            await api.post(`/community/likes/comments/${commentId}/toggle`);
+            setComments(prev =>
+                prev.map(comment =>
+                    comment.commentId === commentId
+                        ? {
+                            ...comment,
+                            liked: !comment.liked,
+                            likeCount: comment.liked ? comment.likeCount - 1 : comment.likeCount + 1
+                        }
+                        : comment
+                )
+            );
         } catch (err) {
             Alert.alert('오류', '댓글 좋아요 처리 실패');
         }
     };
 
+
     const handleLikeReply = async (replyId) => {
         try {
-            await api.post(`/community/likes/replies/${replyId}`);
-            fetchPost();
+            setComments(prev =>
+                prev.map(comment => ({
+                    ...comment,
+                    replies: comment.replies.map(reply =>
+                        reply.replyId === replyId
+                            ? {
+                                ...reply,
+                                liked: !reply.liked,
+                                likeCount: reply.liked ? reply.likeCount - 1 : reply.likeCount + 1
+                            }
+                            : reply
+                    )
+                }))
+            );
+            await api.post(`/community/likes/replies/${replyId}/toggle`);
         } catch (err) {
             Alert.alert('오류', '대댓글 좋아요 처리 실패');
         }
     };
+
 
     // ==== 수정 요청 ====
 

@@ -8,7 +8,6 @@ import EncryptedStorage from 'react-native-encrypted-storage';
 import { jwtDecode } from 'jwt-decode';
 import moment from 'moment';
 import SockJS from 'sockjs-client';
-import { Stomp } from '@stomp/stompjs';
 import api from '../../api/api';
 
 const BASE_URL = 'http://192.168.0.2:8080';
@@ -20,7 +19,7 @@ const ChatRoomListScreen = () => {
     const [filter, setFilter] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [menuVisible, setMenuVisible] = useState(false);
-    const stompClient = useRef(null);
+    const socketRef = useRef(null);
 
     useEffect(() => {
         const init = async () => {
@@ -30,15 +29,13 @@ const ChatRoomListScreen = () => {
                 const id = Number(decoded.sub);
                 setUserId(id);
                 fetchChatRooms(id);
-                connectWebSocket(id);
+                connectSocket(id);
             }
         };
         init();
 
         return () => {
-            if (stompClient.current?.connected) {
-                stompClient.current.disconnect(() => console.log('Disconnected'));
-            }
+            socketRef.current?.close();
         };
     }, []);
 
@@ -59,14 +56,31 @@ const ChatRoomListScreen = () => {
         }
     };
 
-    const connectWebSocket = (uid) => {
+    const connectSocket = (uid) => {
         const socket = new SockJS(`${BASE_URL}/ws`);
-        stompClient.current = Stomp.over(socket);
-        stompClient.current.connect({}, () => {
-            stompClient.current.subscribe(`/sub/chat/user/${uid}`, () => {
-                fetchChatRooms(uid);
-            });
-        });
+        socketRef.current = socket;
+
+        socket.onopen = () => {
+            console.log('✅ WebSocket 연결됨');
+        };
+
+        socket.onmessage = (e) => {
+            try {
+                const message = JSON.parse(e.data);
+                console.log('📩 메시지 수신:', message);
+
+                // 예: 채팅방 정보 갱신 메시지일 경우 새로고침
+                if (message?.type === 'ROOM_UPDATE' || message?.type === 'TEXT') {
+                    fetchChatRooms(uid);
+                }
+            } catch (err) {
+                console.warn('❌ 메시지 파싱 실패:', e.data);
+            }
+        };
+
+        socket.onclose = () => {
+            console.warn('🔌 WebSocket 연결 종료됨');
+        };
     };
 
     const handleLongPress = (roomId) => {
@@ -102,14 +116,9 @@ const ChatRoomListScreen = () => {
         .sort((a, b) => (b.pinned === a.pinned ? 0 : b.pinned ? -1 : 1));
 
     const renderItem = ({ item }) => {
-        const imageFileName = item.profileImageUrl;
-        const hasProfileImage = !!imageFileName && imageFileName.trim() !== '';
-
+        const hasProfileImage = !!item.profileImageUrl?.trim();
         const imageSource = hasProfileImage
-            ? {
-                uri: `${BASE_URL}/uploads/chatroom/${imageFileName}`,
-                priority: FastImage.priority.normal,
-            }
+            ? { uri: `${BASE_URL}/uploads/chatroom/${item.profileImageUrl}` }
             : require('../../assets/profile.png');
 
         return (
@@ -118,36 +127,20 @@ const ChatRoomListScreen = () => {
                 onPress={() => navigation.navigate('ChatRoom', { roomId: item.roomId })}
                 onLongPress={() => handleLongPress(item.roomId)}
             >
-                <FastImage
-                    source={imageSource}
-                    style={styles.profileImage}
-                    resizeMode={FastImage.resizeMode.cover}
-                />
-
+                <FastImage source={imageSource} style={styles.profileImage} resizeMode={FastImage.resizeMode.cover} />
                 <View style={styles.chatInfo}>
                     <View style={styles.nameRow}>
                         <Text style={styles.chatRoomName}>{item.roomName}</Text>
-
                         <View style={styles.infoInlineRow}>
-                            <Text style={styles.participantCount}>
-                                👥 {item.participantCount ?? 0}
-                            </Text>
-                            {item.pinned && (
-                                <Image source={require('../../assets/pin.png')} style={styles.smallIcon} />
-                            )}
+                            <Text style={styles.participantCount}>👥 {item.participantCount ?? 0}</Text>
+                            {item.pinned && <Image source={require('../../assets/pin.png')} style={styles.smallIcon} />}
                             <Image source={require('../../assets/bell_off.png')} style={styles.smallIcon} />
                         </View>
                     </View>
-
-                    <Text style={styles.latestMessage} numberOfLines={1}>
-                        {item.lastMessage || '(아직 메시지 없음)'}
-                    </Text>
+                    <Text style={styles.latestMessage} numberOfLines={1}>{item.lastMessage || '(아직 메시지 없음)'}</Text>
                 </View>
-
                 <View style={styles.rightInfo}>
-                    <Text style={styles.metaText}>
-                        {item.lastMessageAt && moment(item.lastMessageAt).format('HH:mm')}
-                    </Text>
+                    <Text style={styles.metaText}>{item.lastMessageAt && moment(item.lastMessageAt).format('HH:mm')}</Text>
                     {(item.unreadCount ?? 0) > 0 && (
                         <View style={styles.unreadBadge}>
                             <Text style={styles.unreadText}>{item.unreadCount}</Text>
@@ -157,7 +150,6 @@ const ChatRoomListScreen = () => {
             </TouchableOpacity>
         );
     };
-
 
     return (
         <View style={styles.container}>
@@ -204,9 +196,7 @@ const ChatRoomListScreen = () => {
                 keyExtractor={item => item.roomId.toString()}
                 renderItem={renderItem}
                 contentContainerStyle={{ paddingTop: 10, paddingBottom: 100 }}
-                ListEmptyComponent={
-                    <Text style={styles.emptyText}>채팅방 목록이 비었습니다.</Text>
-                }
+                ListEmptyComponent={<Text style={styles.emptyText}>채팅방 목록이 비었습니다.</Text>}
             />
 
             <TouchableOpacity
@@ -250,13 +240,15 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     searchInput: {
-        backgroundColor: '#FFFDF9',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+        borderRadius: 18,
         marginHorizontal: 20,
-        marginVertical: 10,
-        padding: 10,
-        borderRadius: 12,
-        fontSize: 14,
-        color: '#3C3C3C',
+        marginTop: 14,
+        marginBottom: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
         borderWidth: 1,
         borderColor: '#E0D7D2',
     },

@@ -2,6 +2,7 @@ package com.smartcampus.back.dto.community.chat.response;
 
 import lombok.Builder;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 

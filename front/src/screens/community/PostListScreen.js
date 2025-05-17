@@ -42,7 +42,7 @@ const PostListScreen = () => {
     }, [isFocused]);
 
     useEffect(() => {
-        if (isFocused) {
+        if (isFocused && !searchMode) {
             fetchPosts(0, true);
         }
     }, [isFocused]);
@@ -123,7 +123,13 @@ const PostListScreen = () => {
         <TouchableOpacity
             style={styles.postCard}
             activeOpacity={1}
-            onPress={() => navigation.navigate('PostDetail', { postId: item.postId })}
+            onPress={() =>
+                navigation.navigate('PostDetail', {
+                    postId: item.postId,
+                    key: `PostDetail-${item.postId}` // <- 이 줄이 핵심!
+                })
+            }
+
         >
             <View style={styles.postHeader}>
                 <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>

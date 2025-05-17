@@ -1,20 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 🌍 위치 권한 -->
+    <!-- 📍 위치 권한 -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
 
-    <!-- 🌐 인터넷 권한 -->
+    <!-- 🌐 네트워크 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- 📂 저장소 권한 (버전별 대응) -->
-    <!-- Android 9 이하: 읽기/쓰기 -->
+    <!-- 📂 저장소 권한 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-                     android:maxSdkVersion="28" />
-
-    <!-- Android 13 이상: 미디어 이미지 읽기 권한 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
@@ -27,7 +23,7 @@
             android:supportsRtl="true"
             android:usesCleartextTraffic="true">
 
-        <!-- 🌟 Kakao Maps API 키 -->
+        <!-- Kakao Maps API -->
         <meta-data
                 android:name="com.kakao.sdk.AppKey"
                 android:value="e84461afa8078822e18c5b6af6752df6" />

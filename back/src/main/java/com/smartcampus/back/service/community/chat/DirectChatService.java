@@ -1,6 +1,7 @@
 package com.smartcampus.back.service.community.chat;
 
 import com.smartcampus.back.dto.community.chat.request.DirectChatRequest;
+import com.smartcampus.back.dto.community.chat.response.ChatParticipantDto;
 import com.smartcampus.back.dto.community.chat.response.ChatRoomListResponse;
 import com.smartcampus.back.dto.community.chat.response.ChatRoomResponse;
 import com.smartcampus.back.entity.auth.User;
@@ -8,6 +9,7 @@ import com.smartcampus.back.entity.chat.ChatParticipant;
 import com.smartcampus.back.entity.chat.ChatRoom;
 import com.smartcampus.back.entity.chat.ChatRoomType;
 import com.smartcampus.back.global.exception.CustomException;
+import com.smartcampus.back.global.security.SecurityUtil;
 import com.smartcampus.back.repository.auth.UserRepository;
 import com.smartcampus.back.repository.chat.ChatParticipantRepository;
 import com.smartcampus.back.repository.chat.ChatRoomRepository;
@@ -28,10 +30,10 @@ public class DirectChatService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatParticipantRepository chatParticipantRepository;
-    private final UserRepository userRepository;
+    private final SecurityUtil SecurityUtil;
 
     public ChatRoomResponse startOrGetDirectChat(DirectChatRequest request) {
-        Long myId = getCurrentUserId();
+        Long myId = SecurityUtil.getCurrentUserId();
         Long otherId = request.getTargetUserId();
 
         return findExistingDirectRoom(myId, otherId)
@@ -40,7 +42,7 @@ public class DirectChatService {
     }
 
     public List<ChatRoomListResponse> getMyDirectChatRooms() {
-        Long myId = getCurrentUserId();
+        Long myId = SecurityUtil.getCurrentUserId();
         User me = User.builder().id(myId).build();
 
         return chatParticipantRepository.findByUser(me).stream()
@@ -56,7 +58,7 @@ public class DirectChatService {
     }
 
     public ChatRoomResponse getDirectChatWithUser(Long userId) {
-        Long myId = getCurrentUserId();
+        Long myId = SecurityUtil.getCurrentUserId();
         return findExistingDirectRoom(myId, userId)
                 .map(this::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("상대방과의 1:1 채팅방이 존재하지 않습니다."));
@@ -105,24 +107,23 @@ public class DirectChatService {
     }
 
     private ChatRoomResponse toResponse(ChatRoom room) {
+        List<ChatParticipantDto> participants = chatParticipantRepository.findByChatRoom(room)
+                .stream()
+                .map(p -> new ChatParticipantDto(
+                        p.getUser().getId(),
+                        p.getUser().getNickname(),
+                        p.getUser().getProfileImageUrl()
+                ))
+                .toList();
+
         return ChatRoomResponse.builder()
                 .roomId(room.getId())
                 .roomName(room.getName())
                 .roomType(room.getType().name())
-                .referenceId(room.getReferenceId())
                 .createdAt(room.getCreatedAt())
+                .representativeImageUrl(room.getRepresentativeImageUrl())
+                .participants(participants)
+                .participantCount(participants.size())
                 .build();
-    }
-
-    private Long getCurrentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) throw new CustomException("로그인 정보가 없습니다.");
-
-        Object principal = auth.getPrincipal();
-        if (principal instanceof CustomUserDetails userDetails) {
-            return userDetails.getUserId();
-        }
-
-        throw new CustomException("사용자 정보를 불러올 수 없습니다.");
     }
 }

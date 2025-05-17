@@ -1,179 +1,215 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    View, Text, StyleSheet, TextInput, TouchableOpacity,
-    FlatList, Image, KeyboardAvoidingView, Platform
+    View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
+    Image, KeyboardAvoidingView, Platform, Linking, Keyboard
 } from 'react-native';
-import moment from 'moment';
 import FastImage from 'react-native-fast-image';
-import { useNavigation, useRoute } from '@react-navigation/native';
 import SockJS from 'sockjs-client';
-import { CompatClient, Stomp } from '@stomp/stompjs';
-import axios from 'axios';
+import moment from 'moment';
 import DocumentPicker from 'react-native-document-picker';
+import axios from 'axios';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import {jwtDecode} from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import api from '../../api/api';
 
-const BASE_URL = 'http://192.168.0.2:8080'; // Spring 서버 주소
+const BASE_URL = 'http://192.168.0.2:8080';
 
 const ChatRoomScreen = () => {
     const navigation = useNavigation();
-    const { roomId, otherUserNickname } = useRoute().params;
+    const { roomId } = useRoute().params;
 
-    const [messages, setMessages] = useState([]);
-    const [messageInput, setMessageInput] = useState('');
-    const flatListRef = useRef(null);
-    const stompClient = useRef(null);
     const [userId, setUserId] = useState(null);
     const [nickname, setNickname] = useState('');
     const [profileUrl, setProfileUrl] = useState('');
+    const [roomInfo, setRoomInfo] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [messageInput, setMessageInput] = useState('');
+    const [searchVisible, setSearchVisible] = useState(false);
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [currentResultIndex, setCurrentResultIndex] = useState(0);
 
-    useEffect(() => {
-        const fetchUserProfile = async () => {
-            try {
-                const token = await EncryptedStorage.getItem('accessToken');
-                if (!token) return;
+    const socketRef = useRef(null);
+    const flatListRef = useRef(null);
 
-                const decoded = jwtDecode(token);
-                const userIdFromToken = Number(decoded.sub); // JWT에서 userId 추출
-                setUserId(userIdFromToken);
-
-                const res = await api.get(`/users/${userIdFromToken}`);
-                const { nickname, profileImageUrl } = res.data;
-
-                setNickname(nickname);
-                setProfileUrl(profileImageUrl);
-            } catch (err) {
-                console.error('유저 정보 로드 실패:', err);
-            }
-        };
-
-        fetchUserProfile();
-    }, []);
-
-    useEffect(() => {
-        connectStomp();
-
-        return () => {
-            if (stompClient.current && stompClient.current.connected) {
-                stompClient.current.disconnect(() => console.log('🔌 Disconnected'));
-            }
-        };
-    }, []);
-
-    const connectStomp = () => {
-        const socket = new SockJS(`${BASE_URL}/ws`);
-        stompClient.current = Stomp.over(socket);
-
-        stompClient.current.connect({}, () => {
-            console.log('✅ Connected to STOMP');
-
-            stompClient.current.subscribe(`/sub/chat/room/${roomId}`, (message) => {
-                const body = JSON.parse(message.body);
-                setMessages(prev => [...prev, body]);
-            });
-
-            // 입장 메시지 전송 (옵션)
-            stompClient.current.send(
-                '/pub/chat/enter',
-                {},
-                JSON.stringify({ roomId, senderId: userId })
-            );
-        }, (error) => {
-            console.log('❌ STOMP error:', error);
-        });
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+        }, 50);
     };
 
-    const handleFilePickAndUpload = async () => {
-        try {
-            const res = await DocumentPicker.pickSingle({
-                type: [DocumentPicker.types.images, DocumentPicker.types.pdf, DocumentPicker.types.plainText],
-            });
+    useEffect(() => {
+        const init = async () => {
+            const token = await EncryptedStorage.getItem('accessToken');
+            if (!token) return;
 
-            const formData = new FormData();
-            formData.append('file', {
-                uri: res.uri,
-                type: res.type,
-                name: res.name,
-            });
+            const decoded = jwtDecode(token);
+            const id = Number(decoded.sub);
+            setUserId(id);
 
-            const uploadRes = await axios.post(`${BASE_URL}/chat/upload`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const res = await api.get(`/users/${id}`);
+            setNickname(res.data.nickname);
+            setProfileUrl(res.data.profileImageUrl);
 
-            const fileUrl = uploadRes.data.fileUrl;
+            const roomRes = await api.get(`/chat/rooms/${roomId}`);
+            setRoomInfo(roomRes.data);
 
-            // 업로드된 파일을 메시지로 전송
-            const fileMessage = {
-                roomId,
-                senderId: userId,
-                nickname,
-                profileUrl,
-                content: fileUrl,
-                type: 'FILE', // 또는 'IMAGE'
-                time: new Date().toISOString()
+            const messageRes = await api.get(`/chat/rooms/${roomId}/messages?page=0&size=100`);
+            setMessages(messageRes.data);
+        };
+
+        init();
+    }, [roomId]);
+
+    useEffect(() => {
+        const connectWebSocket = async () => {
+            const token = await EncryptedStorage.getItem('accessToken');
+            if (!token || !userId || !roomId) return;
+
+            const socket = new SockJS(`${BASE_URL}/ws/chat?token=${token}`);
+            socketRef.current = socket;
+
+            socket.onopen = () => {
+                const enterMessage = {
+                    roomId,
+                    type: 'ENTER',
+                    content: `${nickname}님이 입장하셨습니다.`,
+                    time: new Date().toISOString(),
+                };
+                socket.send(JSON.stringify(enterMessage));
             };
 
-            stompClient.current?.send('/pub/chat/message', {}, JSON.stringify(fileMessage));
-        } catch (err) {
-            if (!DocumentPicker.isCancel(err)) {
-                console.warn('파일 선택 또는 업로드 실패:', err);
-            }
-        }
-    };
+            socket.onmessage = (e) => {
+                try {
+                    const msg = JSON.parse(e.data);
+                    setMessages(prev => [...prev, msg].sort((a, b) => new Date(a.time) - new Date(b.time)));
+                    scrollToBottom();
+                } catch {
+                    console.warn('❌ 메시지 파싱 실패');
+                }
+            };
+
+            socket.onerror = (e) => {
+                console.error('소켓 에러:', e);
+            };
+
+            socket.onclose = () => {
+                console.log('🛑 소켓 연결 종료');
+            };
+        };
+
+        connectWebSocket();
+        return () => socketRef.current?.close();
+    }, [userId, roomId]);
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messageInput]);
 
     const sendMessage = () => {
-        if (!messageInput.trim()) return;
+        if (!messageInput.trim() || !socketRef.current || socketRef.current.readyState !== 1) return;
 
-        const messagePayload = {
+        const message = {
             roomId,
             senderId: userId,
             nickname,
             profileUrl,
             content: messageInput,
             type: 'TEXT',
-            time: new Date().toISOString()
+            time: new Date().toISOString(),
         };
 
-        if (stompClient.current && stompClient.current.connected) {
-            stompClient.current.send('/pub/chat/message', {}, JSON.stringify(messagePayload));
-            setMessageInput('');
+        socketRef.current.send(JSON.stringify(message));
+        setMessageInput('');
+    };
+
+    const handleFileUpload = async () => {
+        try {
+            const file = await DocumentPicker.pickSingle();
+            const formData = new FormData();
+            formData.append('file', {
+                uri: file.uri,
+                type: file.type,
+                name: file.name,
+            });
+
+            const res = await axios.post(`${BASE_URL}/chat/upload`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+
+            const message = {
+                roomId,
+                senderId: userId,
+                nickname,
+                profileUrl,
+                content: res.data.fileUrl,
+                type: 'FILE',
+                time: new Date().toISOString(),
+            };
+
+            socketRef.current.send(JSON.stringify(message));
+            await api.post(`/chat/messages`, {
+                roomId: message.roomId,
+                content: message.content,
+                type: message.type,
+            });
+        } catch (e) {
+            console.warn('파일 업로드 실패:', e);
         }
     };
 
+    const filteredIndices = messages
+        .map((msg, i) => (typeof msg.content === 'string' && msg.content.includes(searchKeyword)) ? i : null)
+        .filter(i => i !== null);
+
+    const goToResult = (direction) => {
+        if (filteredIndices.length === 0) return;
+        let newIndex = currentResultIndex + direction;
+        newIndex = Math.max(0, Math.min(filteredIndices.length - 1, newIndex));
+        setCurrentResultIndex(newIndex);
+        flatListRef.current?.scrollToIndex({ index: filteredIndices[newIndex], animated: true });
+    };
+
     const renderMessage = ({ item }) => {
+        // [1] 입장 메시지 예외 처리
+        if (!item.senderId || item.type === 'ENTER') return null;
+
         const isMine = item.senderId === userId;
+        const isFile = item.type === 'FILE';
+        const contentText = item.content || '';
+
+        const content = isFile ? (
+            <TouchableOpacity onPress={() => Linking.openURL(BASE_URL + contentText)}>
+                <Text style={styles.fileLink}>[첨부파일 다운로드]</Text>
+            </TouchableOpacity>
+        ) : (
+            <Text style={styles.messageText}>{contentText}</Text>
+        );
+
+        const profileImageSource = item.profileUrl
+            ? { uri: BASE_URL + item.profileUrl }
+            : require('../../assets/profile.png');
 
         if (isMine) {
-            // 내가 보낸 메시지
             return (
                 <View style={[styles.messageRow, { justifyContent: 'flex-end' }]}>
-                    <View style={styles.metadataLeft}>
-                        <Text style={styles.unread}>{item.unreadCount > 0 ? `안읽음 ${item.unreadCount}` : ''}</Text>
-                        <Text style={styles.time}>{moment(item.time).format('HH:mm')}</Text>
-                    </View>
-                    <View style={[styles.messageBubble, styles.myBubble]}>
-                        <Text style={styles.messageText}>{item.content}</Text>
+                    <View style={styles.row}>
+                        <Text style={styles.timeOutsideMine}>{moment(item.time).format('A hh:mm')}</Text>
+                        <View style={[styles.messageBubble, styles.myBubble]}>
+                            {content}
+                        </View>
                     </View>
                 </View>
             );
         } else {
-            // 상대방이 보낸 메시지
             return (
-                <View style={styles.messageRow}>
-                    <FastImage source={{ uri: BASE_URL + item.profileUrl }} style={styles.profileImage} />
+                <View style={[styles.messageRow, { alignItems: 'flex-start' }]}>
+                    <FastImage source={profileImageSource} style={styles.profileImage} />
                     <View style={{ flexShrink: 1 }}>
-                        <Text style={styles.nickname}>{item.nickname}</Text>
+                        <Text style={styles.nickname}>{item.nickname ?? ''}</Text>
                         <View style={styles.row}>
-                            <View style={styles.messageBubble}>
-                                <Text style={styles.messageText}>{item.content}</Text>
-                            </View>
-                            <View style={styles.metadataRight}>
-                                <Text style={styles.unread}>{item.unreadCount > 0 ? `안읽음 ${item.unreadCount}` : ''}</Text>
-                                <Text style={styles.time}>{moment(item.time).format('HH:mm')}</Text>
-                            </View>
+                            <View style={styles.messageBubble}>{content}</View>
+                            <Text style={styles.timeOutsideOther}>{moment(item.time).format('A hh:mm')}</Text>
                         </View>
                     </View>
                 </View>
@@ -181,44 +217,75 @@ const ChatRoomScreen = () => {
         }
     };
 
-
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            {/* 상단 헤더 */}
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0} // ✅ 하단 탭 높이 포함한 적절한 여백
+        >
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
+                <TouchableOpacity onPress={() => navigation.navigate('ChatRoomList')} style={styles.headerSide}>
                     <Image source={require('../../assets/back.png')} style={styles.backIcon} />
                 </TouchableOpacity>
-                <Text style={styles.title}>{otherUserNickname}</Text>
-                <TouchableOpacity>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={styles.title}>
+                        {roomInfo ? `${roomInfo.roomName} (${roomInfo.participants?.length ?? 0})` : '채팅방'}
+                    </Text>
+                </View>
+                <TouchableOpacity onPress={() => setSearchVisible(prev => !prev)} style={styles.headerSide}>
                     <Image source={require('../../assets/search.png')} style={styles.searchIcon} />
                 </TouchableOpacity>
             </View>
 
-            {/* 채팅 메시지 목록 */}
-            <FlatList
-                ref={flatListRef}
-                data={messages}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={renderMessage}
-                contentContainerStyle={styles.messageList}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            />
+            {searchVisible && (
+                <View style={styles.searchBar}>
+                    <TextInput
+                        placeholder="메시지 검색"
+                        value={searchKeyword}
+                        onChangeText={(text) => {
+                            setSearchKeyword(text);
+                            setCurrentResultIndex(0);
+                        }}
+                        style={styles.searchInput}
+                    />
+                </View>
+            )}
 
-            {/* 입력창 영역 */}
-            <View style={styles.inputBar}>
-                <TouchableOpacity style={styles.plusButton} onPress={handleFilePickAndUpload}>
-                    <Text style={styles.plusText}>＋</Text>
-                </TouchableOpacity>
-                <TextInput
-                    value={messageInput}
-                    onChangeText={setMessageInput}
-                    placeholder="메시지를 입력하세요"
-                    style={styles.input}
+            <View style={styles.bodyContainer}>
+                <FlatList
+                    ref={flatListRef}
+                    data={messages}
+                    keyExtractor={(item, idx) => idx.toString()}
+                    renderItem={renderMessage}
+                    contentContainerStyle={styles.messageList}
+                    onContentSizeChange={scrollToBottom}
+                    onLayout={scrollToBottom}
+                    keyboardShouldPersistTaps="handled"
                 />
-                <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-                    <Text style={styles.sendText}>➤</Text>
-                </TouchableOpacity>
+
+                {searchVisible && filteredIndices.length > 0 && (
+                    <View style={styles.arrowContainer}>
+                        <TouchableOpacity onPress={() => goToResult(-1)}><Text style={styles.arrow}>↑</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => goToResult(1)}><Text style={styles.arrow}>↓</Text></TouchableOpacity>
+                    </View>
+                )}
+
+                <View style={styles.inputBar}>
+                    <TouchableOpacity style={styles.plusButton} onPress={handleFileUpload}>
+                        <Text style={styles.plusText}>＋</Text>
+                    </TouchableOpacity>
+                    <TextInput
+                        value={messageInput}
+                        onChangeText={setMessageInput}
+                        placeholder="메시지를 입력하세요"
+                        style={styles.input}
+                        onSubmitEditing={sendMessage}
+                        blurOnSubmit={false}
+                    />
+                    <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
+                        <Text style={styles.sendText}>➤</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </KeyboardAvoidingView>
     );
@@ -231,64 +298,127 @@ export default ChatRoomScreen;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F4F1EC',
+        backgroundColor: '#FDF8F3',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingTop: 20,
+        paddingBottom: 16,
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#FFFDF9',
+        backgroundColor: '#FFFFFF',
         borderBottomWidth: 1,
-        borderColor: '#EDE3DA',
+        borderColor: '#E0D6CC',
     },
     backIcon: {
         width: 24,
         height: 24,
-        marginRight: 12,
     },
     title: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#4E3F36',
-        flex: 1,
+        color: '#3B2F2F',
     },
     searchIcon: {
         width: 22,
         height: 22,
     },
-    messageList: {
-        padding: 16,
-        paddingBottom: 80,
-    },
-    messageContainer: {
+    searchBar: {
         flexDirection: 'row',
-        marginBottom: 14,
-        alignItems: 'flex-end',
+        padding: 10,
+        backgroundColor: '#FFF',
+        borderBottomWidth: 1,
+        borderColor: '#E0D6CC',
     },
-    myMessage: {
-        alignSelf: 'flex-end',
+    searchInput: {
+        flex: 1,
+        height: 40,
+        borderWidth: 1,
+        borderColor: '#D0C0B0',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        backgroundColor: '#FAF7F5',
+        color: '#333',
     },
-    otherMessage: {
-        alignSelf: 'flex-start',
-    },
-    messageHeader: {
+    arrowContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
+        paddingRight: 20,
         marginBottom: 4,
     },
+    arrow: {
+        fontSize: 22,
+        color: '#8C5C43',
+        marginLeft: 16,
+    },
+    messageList: {
+        flexGrow: 1,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 16,
+    },
+    messageRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        marginBottom: 14,
+        paddingHorizontal: 12,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        flexWrap: 'nowrap',
+    },
+    profileImage: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: 8,
+        borderWidth: 1,
+        borderColor: '#D7CCC8',
+    },
+    nickname: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: '#6D4C41',
+        marginBottom: 4,
+        marginLeft: 8,
+    },
+    messageBubble: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#DDD0C0',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        maxWidth: 260,
+    },
+    messageText: {
+        fontSize: 15,
+        color: '#3C3C3C',
+    },
+    // 👥 다른 사용자 (말풍선 오른쪽 바깥)
+    timeOutsideOther: {
+        fontSize: 11,
+        color: '#999',
+        marginLeft: 8,
+        alignSelf: 'flex-end',
+    },
+// 🙋‍♂️ 로그인한 사용자 (말풍선 왼쪽 바깥)
+    timeOutsideMine: {
+        fontSize: 11,
+        color: '#999',
+        marginRight: 8,
+        alignSelf: 'flex-end',
+    },
     inputBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FDF9F4',
+        backgroundColor: '#FFFFFF',
         borderTopWidth: 1,
-        borderColor: '#EDE3DA',
+        borderColor: '#E0D6CC',
         paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingVertical: Platform.OS === 'ios' ? 12 : 10,
     },
     plusButton: {
         padding: 6,
@@ -296,13 +426,13 @@ const styles = StyleSheet.create({
     },
     plusText: {
         fontSize: 24,
-        color: '#A3775C',
+        color: '#8C5C43',
     },
     input: {
         flex: 1,
-        height: 40,
+        height: 42,
         borderWidth: 1,
-        borderColor: '#D7CCC8',
+        borderColor: '#D0C0B0',
         borderRadius: 20,
         paddingHorizontal: 14,
         backgroundColor: '#FFFFFF',
@@ -314,82 +444,40 @@ const styles = StyleSheet.create({
     },
     sendText: {
         fontSize: 22,
-        color: '#A3775C',
+        color: '#8C5C43',
         fontWeight: 'bold',
     },
-    messageRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        marginBottom: 14,
-        paddingHorizontal: 12,
+    fileLink: {
+        color: '#3366BB',
+        textDecorationLine: 'underline',
+        fontSize: 14,
     },
-
-    row: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        flexWrap: 'nowrap',
+    headerSide: {
+        width: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-
-    nickname: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#7B665A',
-        marginBottom: 4,
-        marginLeft: 8,
+    headerTitleContainer: {
+        flex: 1,
+        alignItems: 'center',
     },
-
-    profileImage: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        marginRight: 8,
-        borderWidth: 1,
-        borderColor: '#E6DAD1',
+    bodyContainer: {
+        flex: 1,
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
     },
-
-    messageBubble: {
-        backgroundColor: '#FFFDF9',
+    myBubble: {
+        backgroundColor: '#E7DCD3',
         borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#E3D4C8',
         paddingVertical: 8,
         paddingHorizontal: 12,
         maxWidth: 260,
     },
-
-    myBubble: {
-        backgroundColor: '#E7DCD3',
-        alignSelf: 'flex-end',
-    },
-
-    messageText: {
-        fontSize: 15,
-        color: '#3C3C3C',
-    },
-
-    metadataRight: {
-        marginLeft: 8,
-        alignItems: 'flex-end',
-        justifyContent: 'flex-end',
-        paddingBottom: 4,
-    },
-
-    metadataLeft: {
-        marginRight: 8,
-        alignItems: 'flex-end',
-        justifyContent: 'flex-end',
-        paddingBottom: 4,
-    },
-
-    unread: {
+    timeMine: {
         fontSize: 11,
-        color: '#A08C7B',
-        marginBottom: 2,
-    },
-
-    time: {
-        fontSize: 12,
-        color: '#9A8E84',
-    },
-
+        color: '#999',
+        marginTop: 4,        // ✅ 말풍선과 시각 사이 간격 확보
+        marginRight: 6,
+        alignSelf: 'flex-end',
+    }
 });

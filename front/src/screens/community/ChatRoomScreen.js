@@ -47,19 +47,79 @@ const ChatRoomScreen = () => {
             const id = Number(decoded.sub);
             setUserId(id);
 
-            const res = await api.get(`/users/${id}`);
-            setNickname(res.data.nickname);
-            setProfileUrl(res.data.profileImageUrl);
+            const userRes = await api.get(`/users/${id}`);
+            setNickname(userRes.data.nickname);
+            setProfileUrl(userRes.data.profileImageUrl);
 
             const roomRes = await api.get(`/chat/rooms/${roomId}`);
             setRoomInfo(roomRes.data);
 
             const messageRes = await api.get(`/chat/rooms/${roomId}/messages?page=0&size=100`);
             setMessages(messageRes.data);
+
+            // ✅ 이 시점 이후에만 WebSocket 연결
+            connectWebSocket(token, id, userRes.data.nickname, userRes.data.profileImageUrl, messageRes.data);
+        };
+
+        const connectWebSocket = (token, userId, nickname, profileUrl, loadedMessages) => {
+            const socket = new SockJS(`${BASE_URL}/ws/chat?token=${token}`);
+            socketRef.current = socket;
+
+            socket.onopen = () => {
+                const enterMessage = {
+                    roomId,
+                    type: 'ENTER',
+                    content: `${nickname}님이 입장하셨습니다.`,
+                    time: new Date().toISOString(),
+                };
+                socket.send(JSON.stringify(enterMessage));
+
+                loadedMessages.forEach(msg => {
+                    if (msg.senderId !== userId && msg.unreadCount > 0) {
+                        socket.send(JSON.stringify({
+                            type: 'READ',
+                            roomId,
+                            messageId: msg.messageId
+                        }));
+                    }
+                });
+            };
+
+            socket.onmessage = (e) => {
+                try {
+                    const msg = JSON.parse(e.data);
+                    if (msg.type === 'READ_ACK') {
+                        setMessages(prev =>
+                            prev.map(m =>
+                                m.messageId === msg.messageId
+                                    ? { ...m, unreadCount: msg.unreadCount }
+                                    : m
+                            )
+                        );
+                    } else {
+                        setMessages(prev => [...prev, msg].sort((a, b) => new Date(a.time) - new Date(b.time)));
+                    }
+                    scrollToBottom();
+                } catch {
+                    console.warn('❌ 메시지 파싱 실패');
+                }
+            };
+
+            socket.onerror = (e) => {
+                console.error('소켓 에러:', e);
+            };
+
+            socket.onclose = () => {
+                console.log('🛑 소켓 연결 종료');
+            };
         };
 
         init();
+
+        return () => socketRef.current?.close();
     }, [roomId]);
+
+
 
     useEffect(() => {
         const connectWebSocket = async () => {
@@ -171,7 +231,6 @@ const ChatRoomScreen = () => {
     };
 
     const renderMessage = ({ item }) => {
-        // [1] 입장 메시지 예외 처리
         if (!item.senderId || item.type === 'ENTER') return null;
 
         const isMine = item.senderId === userId;
@@ -190,31 +249,49 @@ const ChatRoomScreen = () => {
             ? { uri: BASE_URL + item.profileUrl }
             : require('../../assets/profile.png');
 
-        if (isMine) {
-            return (
-                <View style={[styles.messageRow, { justifyContent: 'flex-end' }]}>
+        return (
+            <View style={[styles.messageRow, { justifyContent: isMine ? 'flex-end' : 'flex-start' }]}>
+                {!isMine && <FastImage source={profileImageSource} style={styles.profileImage} />}
+
+                <View style={{ flexShrink: 1, alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                    {!isMine && <Text style={styles.nickname}>{item.nickname ?? ''}</Text>}
+
                     <View style={styles.row}>
-                        <Text style={styles.timeOutsideMine}>{moment(item.time).format('A hh:mm')}</Text>
-                        <View style={[styles.messageBubble, styles.myBubble]}>
-                            {content}
-                        </View>
+                        {/** 내 메시지: 말풍선 오른쪽, 정보는 왼쪽 */}
+                        {isMine && (
+                            <>
+                                <View style={styles.leftMetaColumn}>
+                                    {item.unreadCount > 0 && (
+                                        <Text style={styles.unreadCountText}>{item.unreadCount}</Text>
+                                    )}
+                                    <Text style={styles.messageTime}>
+                                        {moment(item.time).format('A hh:mm')}
+                                    </Text>
+                                </View>
+                                <View style={[styles.messageBubble, styles.myBubble]}>
+                                    {content}
+                                </View>
+                            </>
+                        )}
+
+                        {/** 상대방 메시지: 말풍선 왼쪽, 정보는 오른쪽 */}
+                        {!isMine && (
+                            <>
+                                <View style={styles.messageBubble}>{content}</View>
+                                <View style={styles.rightMetaColumn}>
+                                    {item.unreadCount > 0 && (
+                                        <Text style={styles.unreadCountText}>{item.unreadCount}</Text>
+                                    )}
+                                    <Text style={styles.messageTime}>
+                                        {moment(item.time).format('A hh:mm')}
+                                    </Text>
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
-            );
-        } else {
-            return (
-                <View style={[styles.messageRow, { alignItems: 'flex-start' }]}>
-                    <FastImage source={profileImageSource} style={styles.profileImage} />
-                    <View style={{ flexShrink: 1 }}>
-                        <Text style={styles.nickname}>{item.nickname ?? ''}</Text>
-                        <View style={styles.row}>
-                            <View style={styles.messageBubble}>{content}</View>
-                            <Text style={styles.timeOutsideOther}>{moment(item.time).format('A hh:mm')}</Text>
-                        </View>
-                    </View>
-                </View>
-            );
-        }
+            </View>
+        );
     };
 
     return (
@@ -472,12 +549,48 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 12,
         maxWidth: 260,
+    },unreadCountText: {
+        fontSize: 12,
+        color: '#3C3C3C', // 밝은 노란색
+        fontWeight: 'bold',
+        marginBottom: 2,
+        marginRight: 6,
+        alignSelf: 'flex-end',
     },
+
     timeMine: {
         fontSize: 11,
         color: '#999',
-        marginTop: 4,        // ✅ 말풍선과 시각 사이 간격 확보
+        marginTop: 4,
         marginRight: 6,
         alignSelf: 'flex-end',
-    }
+    },
+
+    timeOther: {
+        fontSize: 11,
+        color: '#999',
+        marginTop: 4,
+        marginLeft: 6,
+        alignSelf: 'flex-start',
+    },
+    leftMetaColumn: {
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        justifyContent: 'flex-end',
+        marginRight: 6,
+    },
+
+    rightMetaColumn: {
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        justifyContent: 'flex-end',
+        marginLeft: 6,
+    },
+
+
+    messageTime: {
+        fontSize: 11,
+        color: '#999',
+    },
+
 });

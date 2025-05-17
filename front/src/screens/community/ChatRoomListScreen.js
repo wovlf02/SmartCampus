@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Alert, Image
+    View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Alert, Image,
+    Keyboard, TouchableWithoutFeedback
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -39,13 +40,29 @@ const ChatRoomListScreen = () => {
         };
     }, []);
 
+    const sendReadReceipt = (roomId, messageId) => {
+        if (socketRef.current?.readyState === 1) {
+            const readPayload = {
+                type: 'READ',
+                roomId,
+                messageId
+            };
+            socketRef.current.send(JSON.stringify(readPayload));
+        }
+    };
+
+
     useFocusEffect(
         useCallback(() => {
             if (userId) {
                 fetchChatRooms(userId);
+                if (!socketRef.current || socketRef.current.readyState !== 1) {
+                    connectSocket(userId);
+                }
             }
         }, [userId])
     );
+
 
     const fetchChatRooms = async (uid) => {
         try {
@@ -56,8 +73,10 @@ const ChatRoomListScreen = () => {
         }
     };
 
-    const connectSocket = (uid) => {
-        const socket = new SockJS(`${BASE_URL}/ws`);
+    const connectSocket = async (uid) => {
+        const token = await EncryptedStorage.getItem('accessToken');
+        if (!token) return;
+        const socket = new SockJS(`${BASE_URL}/ws/chat?token=${token}`);
         socketRef.current = socket;
 
         socket.onopen = () => {
@@ -67,10 +86,9 @@ const ChatRoomListScreen = () => {
         socket.onmessage = (e) => {
             try {
                 const message = JSON.parse(e.data);
-                console.log('📩 메시지 수신:', message);
+                console.log('📩 수신 메시지:', message);
 
-                // 예: 채팅방 정보 갱신 메시지일 경우 새로고침
-                if (message?.type === 'ROOM_UPDATE' || message?.type === 'TEXT') {
+                if (['ROOM_UPDATE', 'TEXT', 'READ_ACK'].includes(message?.type)) {
                     fetchChatRooms(uid);
                 }
             } catch (err) {
@@ -115,11 +133,27 @@ const ChatRoomListScreen = () => {
         .filter(room => room.roomName.toLowerCase().includes(searchQuery.toLowerCase()))
         .sort((a, b) => (b.pinned === a.pinned ? 0 : b.pinned ? -1 : 1));
 
+
     const renderItem = ({ item }) => {
         const hasProfileImage = !!item.profileImageUrl?.trim();
         const imageSource = hasProfileImage
             ? { uri: `${BASE_URL}/uploads/chatroom/${item.profileImageUrl}` }
             : require('../../assets/profile.png');
+
+        let messagePreview = '(아직 메시지 없음)';
+        if (item.lastMessage) {
+            if (
+                item.lastMessage.startsWith('/uploads') ||
+                item.lastMessage.startsWith('http') ||
+                item.lastMessage.endsWith('.jpg') ||
+                item.lastMessage.endsWith('.png') ||
+                item.lastMessage.endsWith('.pdf')
+            ) {
+                messagePreview = '[파일]';
+            } else {
+                messagePreview = item.lastMessage;
+            }
+        }
 
         return (
             <TouchableOpacity
@@ -137,10 +171,12 @@ const ChatRoomListScreen = () => {
                             <Image source={require('../../assets/bell_off.png')} style={styles.smallIcon} />
                         </View>
                     </View>
-                    <Text style={styles.latestMessage} numberOfLines={1}>{item.lastMessage || '(아직 메시지 없음)'}</Text>
+                    <Text style={styles.latestMessage} numberOfLines={1}>{messagePreview}</Text>
                 </View>
                 <View style={styles.rightInfo}>
-                    <Text style={styles.metaText}>{item.lastMessageAt && moment(item.lastMessageAt).format('HH:mm')}</Text>
+                    {item.lastMessageAt && (
+                        <Text style={styles.metaText}>{moment(item.lastMessageAt).format('HH:mm')}</Text>
+                    )}
                     {(item.unreadCount ?? 0) > 0 && (
                         <View style={styles.unreadBadge}>
                             <Text style={styles.unreadText}>{item.unreadCount}</Text>
@@ -151,65 +187,72 @@ const ChatRoomListScreen = () => {
         );
     };
 
+
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>채팅</Text>
-                <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(!menuVisible)}>
-                    <Image source={require('../../assets/menu.png')} style={styles.menuIcon} />
-                </TouchableOpacity>
-                {menuVisible && (
-                    <View style={styles.menuDropdown}>
-                        <TouchableOpacity onPress={() => navigation.navigate('PostList')}>
-                            <Text style={styles.menuItem}>게시판</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('ChatRoomList')}>
-                            <Text style={styles.menuItem}>채팅</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Friend')}>
-                            <Text style={styles.menuItem}>친구</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
-
-            <TextInput
-                placeholder="채팅방 검색"
-                placeholderTextColor="#A08C7B"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={styles.searchInput}
-            />
-
-            <View style={styles.filterRow}>
-                {['ALL', 'DIRECT', 'GROUP'].map(type => (
-                    <TouchableOpacity key={type} onPress={() => setFilter(type)}>
-                        <Text style={[styles.filterTab, filter === type && styles.activeTab]}>
-                            {type === 'ALL' ? '전체' : type === 'GROUP' ? '그룹' : '1:1'}
-                        </Text>
+        <TouchableWithoutFeedback onPress={() => {
+            Keyboard.dismiss();
+            setMenuVisible(false);
+        }}>
+            <View style={styles.container}>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>채팅</Text>
+                    <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(prev => !prev)}>
+                        <Image source={require('../../assets/menu.png')} style={styles.menuIcon} />
                     </TouchableOpacity>
-                ))}
+                    {menuVisible && (
+                        <View style={styles.menuDropdown}>
+                            <TouchableOpacity onPress={() => navigation.navigate('PostList')}>
+                                <Text style={styles.menuItem}>게시판</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => navigation.navigate('ChatRoomList')}>
+                                <Text style={styles.menuItem}>채팅</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => navigation.navigate('Friend')}>
+                                <Text style={styles.menuItem}>친구</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+
+                <TextInput
+                    placeholder="채팅방 검색"
+                    placeholderTextColor="#A08C7B"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    style={styles.searchInput}
+                />
+
+                <View style={styles.filterRow}>
+                    {['ALL', 'DIRECT', 'GROUP'].map(type => (
+                        <TouchableOpacity key={type} onPress={() => setFilter(type)}>
+                            <Text style={[styles.filterTab, filter === type && styles.activeTab]}>
+                                {type === 'ALL' ? '전체' : type === 'GROUP' ? '그룹' : '1:1'}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                <FlatList
+                    data={filteredRooms}
+                    keyExtractor={item => item.roomId.toString()}
+                    renderItem={renderItem}
+                    contentContainerStyle={{ paddingTop: 10, paddingBottom: 100 }}
+                    ListEmptyComponent={<Text style={styles.emptyText}>채팅방 목록이 비었습니다.</Text>}
+                />
+
+                <TouchableOpacity
+                    style={styles.floatingButton}
+                    onPress={() => navigation.navigate('CreateChatRoom')}
+                >
+                    <Text style={styles.plusText}>＋</Text>
+                </TouchableOpacity>
             </View>
-
-            <FlatList
-                data={filteredRooms}
-                keyExtractor={item => item.roomId.toString()}
-                renderItem={renderItem}
-                contentContainerStyle={{ paddingTop: 10, paddingBottom: 100 }}
-                ListEmptyComponent={<Text style={styles.emptyText}>채팅방 목록이 비었습니다.</Text>}
-            />
-
-            <TouchableOpacity
-                style={styles.floatingButton}
-                onPress={() => navigation.navigate('CreateChatRoom')}
-            >
-                <Text style={styles.plusText}>＋</Text>
-            </TouchableOpacity>
-        </View>
+        </TouchableWithoutFeedback>
     );
 };
 
 export default ChatRoomListScreen;
+
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F4F1EC' },
@@ -240,8 +283,6 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     searchInput: {
-        flexDirection: 'row',
-        alignItems: 'center',
         backgroundColor: '#FFF',
         borderRadius: 18,
         marginHorizontal: 20,
@@ -251,6 +292,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderWidth: 1,
         borderColor: '#E0D7D2',
+        fontSize: 14,
     },
     filterRow: {
         flexDirection: 'row',

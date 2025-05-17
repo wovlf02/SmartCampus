@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, TextInput, FlatList,
-    TouchableOpacity, Image, Alert, ActivityIndicator
+    TouchableOpacity, Image, Alert, ActivityIndicator,
+    Keyboard, TouchableWithoutFeedback
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { useNavigation } from '@react-navigation/native';
@@ -17,16 +18,16 @@ const FriendScreen = () => {
     const [users, setUsers] = useState([]);
     const [currentUserId, setCurrentUserId] = useState(null);
     const [menuVisible, setMenuVisible] = useState(false);
-    const [activeTab, setActiveTab] = useState('friends'); // friends | requests | blocked
+    const [activeTab, setActiveTab] = useState('friends');
     const [loading, setLoading] = useState(false);
-    const [searchMode, setSearchMode] = useState(false); // 검색 결과 여부
+    const [searchMode, setSearchMode] = useState(false);
 
     useEffect(() => {
         fetchUserId();
     }, []);
 
     useEffect(() => {
-        if (searchMode) return; // 검색모드면 fetchListByTab 실행 안 함
+        if (searchMode) return;
         fetchListByTab();
     }, [activeTab]);
 
@@ -156,76 +157,152 @@ const FriendScreen = () => {
         }
     };
 
+    const renderUserCard = ({ item }) => {
+        const isRequestTab = activeTab === 'requests';
+        const isMeSender = item.senderId === currentUserId;
 
+        const nickname = item.nickname || item.senderNickname || '알 수 없음';
+        const profileImage = item.profileImageUrl || '';
+        const userId = item.userId || item.senderId;
 
+        const isSearchResult = searchMode;
+        const isFriend = item.alreadyFriend || item.isFriend;
+
+        return (
+            <View style={styles.card}>
+                <FastImage source={{ uri: BASE_URL + profileImage }} style={styles.avatar} />
+                <View style={styles.center}>
+                    <Text style={styles.nickname}>{nickname}</Text>
+                </View>
+                <View style={styles.actions}>
+                    {isSearchResult ? (
+                        item.blocked ? (
+                            <Text style={{ color: '#999' }}>차단 상태</Text>
+                        ) : isFriend ? (
+                            <Text style={{ color: '#999' }}>이미 친구</Text>
+                        ) : item.alreadyRequested ? (
+                            <Text style={{ color: '#999' }}>요청 보냄</Text>
+                        ) : (
+                            <TouchableOpacity style={styles.requestBtn} onPress={() => handleSendRequest(userId)}>
+                                <Text style={styles.btnText}>요청</Text>
+                            </TouchableOpacity>
+                        )
+                    ) : isRequestTab ? (
+                        isMeSender ? (
+                            <Text style={{ color: '#999' }}>보낸 요청</Text>
+                        ) : (
+                            <>
+                                <TouchableOpacity
+                                    style={styles.chatBtn}
+                                    onPress={() => handleAcceptRequest(item.requestId, item.senderId)}
+                                >
+                                    <Text style={styles.btnText}>수락</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.deleteBtn}
+                                    onPress={() => handleRejectRequest(item.requestId, item.senderId)}
+                                >
+                                    <Text style={styles.btnText}>거절</Text>
+                                </TouchableOpacity>
+                            </>
+                        )
+                    ) : item.isBlocked ? (
+                        <TouchableOpacity style={styles.unblockBtn} onPress={() => handleUnblockUser(userId)}>
+                            <Text style={styles.btnText}>차단 해제</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <>
+                            <TouchableOpacity style={styles.chatBtn} onPress={() => handleStartChat(userId)}>
+                                <Text style={styles.btnText}>채팅</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteFriend(userId)}>
+                                <Text style={styles.btnText}>삭제</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.blockBtn} onPress={() => handleBlockUser(userId)}>
+                                <Text style={styles.btnText}>차단</Text>
+                            </TouchableOpacity>
+                        </>
+                    )}
+                </View>
+            </View>
+        );
+    };
 
     return (
-        <View style={styles.container}>
-            {/* 헤더 */}
-            <View style={styles.header}>
-                <View style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={styles.headerTitle}>친구</Text>
-                </View>
-                <TouchableOpacity onPress={() => setMenuVisible(prev => !prev)} style={styles.menuButton}>
-                    <Image source={require('../../assets/menu.png')} style={styles.menuIcon} />
-                </TouchableOpacity>
-                {menuVisible && (
-                    <View style={styles.dropdownMenu}>
-                        <TouchableOpacity onPress={() => navigation.navigate('PostList')}>
-                            <Text style={styles.dropdownItem}>게시판</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('ChatRoomList')}>
-                            <Text style={styles.dropdownItem}>채팅</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => navigation.navigate('Friend')}>
-                            <Text style={styles.dropdownItem}>친구</Text>
-                        </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={() => {
+            Keyboard.dismiss();
+            setMenuVisible(false);
+        }}>
+            <View style={styles.container}>
+                {/* 헤더 */}
+                <View style={styles.header}>
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                        <Text style={styles.headerTitle}>친구</Text>
                     </View>
+                    <TouchableOpacity onPress={() => setMenuVisible(prev => !prev)} style={styles.menuButton}>
+                        <Image source={require('../../assets/menu.png')} style={styles.menuIcon} />
+                    </TouchableOpacity>
+                    {menuVisible && (
+                        <View style={styles.dropdownMenu}>
+                            <TouchableOpacity onPress={() => navigation.navigate('PostList')}>
+                                <Text style={styles.dropdownItem}>게시판</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => navigation.navigate('ChatRoomList')}>
+                                <Text style={styles.dropdownItem}>채팅</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => navigation.navigate('Friend')}>
+                                <Text style={styles.dropdownItem}>친구</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+
+                {/* 탭 */}
+                <View style={styles.tabContainer}>
+                    {['friends', 'requests', 'blocked'].map(tab => (
+                        <TouchableOpacity
+                            key={tab}
+                            onPress={() => {
+                                setSearchMode(false);
+                                setActiveTab(tab);
+                            }}
+                            style={[styles.tabButton, activeTab === tab && styles.tabActive]}
+                        >
+                            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                                {tab === 'friends' ? '친구 목록' : tab === 'requests' ? '요청 목록' : '차단 목록'}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {/* 검색 */}
+                <View style={styles.searchBar}>
+                    <TextInput
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholder="닉네임 입력"
+                        placeholderTextColor="#9A8E84"
+                        style={styles.searchInput}
+                    />
+                    <TouchableOpacity onPress={handleSearch}>
+                        <Image source={require('../../assets/board_search.png')} style={styles.searchIcon} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* 목록 */}
+                {loading ? (
+                    <ActivityIndicator size="large" color="#999" style={{ marginTop: 40 }} />
+                ) : (
+                    <FlatList
+                        data={users}
+                        keyExtractor={(item, index) => item?.userId?.toString() || index.toString()}
+                        renderItem={renderUserCard}
+                        contentContainerStyle={{ paddingBottom: 100 }}
+                        ListEmptyComponent={<Text style={styles.emptyText}>검색 결과가 없습니다.</Text>}
+                    />
                 )}
             </View>
-
-            {/* 탭 */}
-            <View style={styles.tabContainer}>
-                {['friends', 'requests', 'blocked'].map(tab => (
-                    <TouchableOpacity
-                        key={tab}
-                        onPress={() => setActiveTab(tab)}
-                        style={[styles.tabButton, activeTab === tab && styles.tabActive]}
-                    >
-                        <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                            {tab === 'friends' ? '친구 목록' : tab === 'requests' ? '요청 목록' : '차단 목록'}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* 검색 */}
-            <View style={styles.searchBar}>
-                <TextInput
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="닉네임 입력"
-                    placeholderTextColor="#9A8E84"
-                    style={styles.searchInput}
-                />
-                <TouchableOpacity onPress={handleSearch}>
-                    <Image source={require('../../assets/board_search.png')} style={styles.searchIcon} />
-                </TouchableOpacity>
-            </View>
-
-            {/* 목록 */}
-            {loading ? (
-                <ActivityIndicator size="large" color="#999" style={{ marginTop: 40 }} />
-            ) : (
-                <FlatList
-                    data={users}
-                    keyExtractor={(item, index) => item?.userId?.toString() || index.toString()}
-                    renderItem={renderUserCard}
-                    contentContainerStyle={{ paddingBottom: 100 }}
-                    ListEmptyComponent={<Text style={styles.emptyText}>검색 결과가 없습니다.</Text>}
-                />
-            )}
-        </View>
+        </TouchableWithoutFeedback>
     );
 };
 

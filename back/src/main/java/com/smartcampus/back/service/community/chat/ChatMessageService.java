@@ -27,6 +27,7 @@ public class ChatMessageService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ChatReadService chatReadService; // ✅ 추가
 
     /**
      * 채팅 메시지 저장 (WebSocket / REST 공통)
@@ -103,6 +104,7 @@ public class ChatMessageService {
                 .type(message.getType().name())
                 .storedFileName(message.getStoredFileName())
                 .sentAt(message.getSentAt())
+                .unreadCount(chatReadService.getUnreadCountForMessage(message.getId())) // ✅ 추가
                 .build();
     }
 }

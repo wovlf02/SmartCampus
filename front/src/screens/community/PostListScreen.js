@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TextInput, FlatList, Image,
-    TouchableOpacity, Pressable, ActivityIndicator, Alert, Dimensions
+    TouchableOpacity, Pressable, ActivityIndicator, Alert,
+    Dimensions, Keyboard, TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import EncryptedStorage from 'react-native-encrypted-storage';
@@ -64,7 +65,6 @@ const PostListScreen = () => {
             setSearchMode(false);
         } catch (err) {
             if (err.response?.status === 403) {
-                // 게시글이 없을 때를 위한 예외 처리
                 console.warn('게시글 없음 (403)');
                 setPostsData([]);
                 setHasMore(false);
@@ -76,7 +76,6 @@ const PostListScreen = () => {
             setLoading(false);
         }
     };
-
 
     const handleMenuSelect = (screen) => {
         setMenuVisible(false);
@@ -126,10 +125,9 @@ const PostListScreen = () => {
             onPress={() =>
                 navigation.navigate('PostDetail', {
                     postId: item.postId,
-                    key: `PostDetail-${item.postId}` // <- 이 줄이 핵심!
+                    key: `PostDetail-${item.postId}`
                 })
             }
-
         >
             <View style={styles.postHeader}>
                 <Text style={styles.postTitle} numberOfLines={1}>{item.title}</Text>
@@ -166,75 +164,86 @@ const PostListScreen = () => {
     );
 
     return (
-        <View style={styles.container}>
-            {/* 상단 헤더 */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>게시판</Text>
-                <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(!menuVisible)}>
-                    <Text style={styles.menuIcon}>☰</Text>
-                </TouchableOpacity>
-                {menuVisible && (
-                    <View style={styles.dropdownMenu}>
-                        <TouchableOpacity onPress={() => handleMenuSelect('Chat')}>
-                            <Text style={styles.dropdownItem}>채팅</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleMenuSelect('Friend')}>
-                            <Text style={styles.dropdownItem}>친구</Text>
-                        </TouchableOpacity>
-                    </View>
+        <TouchableWithoutFeedback onPress={() => {
+            Keyboard.dismiss();
+            setMenuVisible(false);
+        }}>
+            <View style={styles.container}>
+                {/* 상단 헤더 */}
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>게시판</Text>
+                    <TouchableOpacity
+                        style={styles.menuButton}
+                        onPress={() => setMenuVisible(prev => !prev)}
+                    >
+                        <Text style={styles.menuIcon}>☰</Text>
+                    </TouchableOpacity>
+                    {menuVisible && (
+                        <View style={styles.dropdownMenu}>
+                            <TouchableOpacity onPress={() => handleMenuSelect('Post')}>
+                                <Text style={styles.dropdownItem}>게시판</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleMenuSelect('Chat')}>
+                                <Text style={styles.dropdownItem}>채팅</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleMenuSelect('Friend')}>
+                                <Text style={styles.dropdownItem}>친구</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+
+                {/* 검색창 */}
+                <View style={styles.searchBar}>
+                    <TextInput
+                        placeholder="검색어 입력"
+                        placeholderTextColor="#9A8E84"
+                        value={searchQuery}
+                        onChangeText={(text) => {
+                            setSearchQuery(text);
+                            handleSearch(text);
+                        }}
+                        style={styles.searchInput}
+                    />
+                    <TouchableOpacity onPress={handleSearch}>
+                        <Image source={require('../../assets/board_search.png')} style={styles.searchIcon} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* 게시글 목록 */}
+                {loading && postsData.length === 0 ? (
+                    <ActivityIndicator size="large" color="#A3775C" style={{ marginTop: screenHeight * 0.04 }} />
+                ) : (
+                    <FlatList
+                        data={postsData}
+                        keyExtractor={(item) => item.postId?.toString()}
+                        renderItem={renderPost}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.4}
+                        contentContainerStyle={{ paddingBottom: screenHeight * 0.12 }}
+                        ListEmptyComponent={
+                            <Text style={styles.emptyText}>
+                                등록된 게시글이 없습니다.
+                            </Text>
+                        }
+                    />
                 )}
-            </View>
 
-            {/* 검색창 */}
-            <View style={styles.searchBar}>
-                <TextInput
-                    placeholder="검색어 입력"
-                    placeholderTextColor="#9A8E84"
-                    value={searchQuery}
-                    onChangeText={(text) => {
-                        setSearchQuery(text);
-                        handleSearch(text);
+                {/* 글쓰기 버튼 */}
+                <TouchableOpacity
+                    style={styles.floatingButton}
+                    onPress={() => {
+                        if (!writerId) {
+                            Alert.alert('오류', '로그인이 필요합니다.');
+                            return;
+                        }
+                        navigation.navigate('CreatePost', { writerId });
                     }}
-                    style={styles.searchInput}
-                />
-                <TouchableOpacity onPress={handleSearch}>
-                    <Image source={require('../../assets/board_search.png')} style={styles.searchIcon} />
+                >
+                    <Image source={require('../../assets/pencil.png')} style={styles.addIcon} />
                 </TouchableOpacity>
             </View>
-
-            {/* 게시글 목록 */}
-            {loading && postsData.length === 0 ? (
-                <ActivityIndicator size="large" color="#A3775C" style={{ marginTop: screenHeight * 0.04 }} />
-            ) : (
-                <FlatList
-                    data={postsData}
-                    keyExtractor={(item) => item.postId?.toString()}
-                    renderItem={renderPost}
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.4}
-                    contentContainerStyle={{ paddingBottom: screenHeight * 0.12 }}
-                    ListEmptyComponent={
-                        <Text style={styles.emptyText}>
-                            등록된 게시글이 없습니다.
-                        </Text>
-                    }
-                />
-            )}
-
-            {/* 글쓰기 버튼 */}
-            <TouchableOpacity
-                style={styles.floatingButton}
-                onPress={() => {
-                    if (!writerId) {
-                        Alert.alert('오류', '로그인이 필요합니다.');
-                        return;
-                    }
-                    navigation.navigate('CreatePost', { writerId });
-                }}
-            >
-                <Image source={require('../../assets/pencil.png')} style={styles.addIcon} />
-            </TouchableOpacity>
-        </View>
+        </TouchableWithoutFeedback>
     );
 };
 
@@ -265,7 +274,7 @@ const styles = StyleSheet.create({
     },
     menuIcon: {
         fontSize: screenWidth * 0.055,
-        color: '#000', // 검정색으로 변경
+        color: '#000',
     },
     dropdownMenu: {
         position: 'absolute',
@@ -335,7 +344,7 @@ const styles = StyleSheet.create({
     },
     postMeta: {
         fontSize: 12,
-        color: '#999', // 회색으로 변경
+        color: '#999',
         marginBottom: 6,
     },
     postContent: {
@@ -382,7 +391,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: screenWidth * 0.06,
         bottom: screenHeight * 0.04,
-        backgroundColor: '#333', // ✅ 회색 계열
+        backgroundColor: '#333',
         width: screenWidth * 0.15,
         height: screenWidth * 0.15,
         borderRadius: screenWidth * 0.075,

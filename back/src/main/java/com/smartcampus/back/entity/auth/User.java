@@ -2,6 +2,7 @@ package com.smartcampus.back.entity.auth;
 
 import com.smartcampus.back.entity.chat.ChatMessage;
 import com.smartcampus.back.entity.chat.ChatParticipant;
+import com.smartcampus.back.entity.chat.ChatRead;
 import com.smartcampus.back.entity.community.*;
 import com.smartcampus.back.entity.friend.*;
 import jakarta.persistence.*;
@@ -126,6 +127,13 @@ public class User {
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChatParticipant> chatParticipations = new ArrayList<>();
+
+    /**
+     * 사용자가 읽은 채팅 메시지들
+     */
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChatRead> chatReads = new ArrayList<>();
 
     // ===== 생명주기 =====
 

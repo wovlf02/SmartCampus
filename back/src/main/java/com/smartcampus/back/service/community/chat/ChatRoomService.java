@@ -22,6 +22,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -124,26 +127,48 @@ public class ChatRoomService {
         User user = User.builder().id(userId).build();
         List<ChatParticipant> participants = chatParticipantRepository.findByUser(user);
 
-        return participants.stream().map(participant -> {
+        List<ChatRoomListResponse> responseList = participants.stream().map(participant -> {
             ChatRoom room = participant.getChatRoom();
             ChatMessage lastMessage = chatMessageRepository.findTopByChatRoomOrderBySentAtDesc(room);
 
-            int unreadCount = chatMessageRepository.countByChatRoomAndSenderNotAndIdGreaterThan(
-                    room, user, participant.getLastReadMessageId() != null ? participant.getLastReadMessageId() : 0L
+            int unreadCount = chatMessageRepository.countUnreadMessages(
+                    room,
+                    user,
+                    participant.getLastReadMessageId()
             );
 
-            return ChatRoomListResponse.builder()
+            int totalMessageCount = chatMessageRepository.countByChatRoom(room);
+
+            ChatRoomListResponse response = ChatRoomListResponse.builder()
                     .roomId(room.getId())
                     .roomName(room.getName())
                     .roomType(room.getType().name())
                     .lastMessage(lastMessage != null ? lastMessage.getContent() : null)
                     .lastMessageAt(lastMessage != null ? lastMessage.getSentAt() : null)
+                    .lastSenderNickname(lastMessage != null && lastMessage.getSender() != null ? lastMessage.getSender().getNickname() : null)
+                    .lastSenderProfileImageUrl(lastMessage != null && lastMessage.getSender() != null ? lastMessage.getSender().getProfileImageUrl() : null)
+                    .lastMessageType(lastMessage != null ? lastMessage.getType().name() : null)
                     .participantCount(chatParticipantRepository.countByChatRoom(room))
                     .unreadCount(unreadCount)
+                    .totalMessageCount(totalMessageCount)
                     .profileImageUrl(room.getRepresentativeImageUrl())
                     .build();
+
+            System.out.printf("🔔 채팅방 ID: %d | 마지막 읽은 ID: %s | 안읽은 메시지 수: %d\n",
+                    room.getId(),
+                    participant.getLastReadMessageId(),
+                    unreadCount
+            );
+
+            return response;
         }).toList();
+
+        return responseList;
     }
+
+
+
+
 
     /**
      * 채팅방 상세 조회

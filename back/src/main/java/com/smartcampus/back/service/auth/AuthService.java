@@ -3,6 +3,7 @@ package com.smartcampus.back.service.auth;
 import com.smartcampus.back.dto.auth.request.*;
 import com.smartcampus.back.dto.auth.response.LoginResponse;
 import com.smartcampus.back.dto.auth.response.TokenResponse;
+import com.smartcampus.back.dto.user.request.UpdatePasswordRequest;
 import com.smartcampus.back.entity.auth.University;
 import com.smartcampus.back.entity.auth.User;
 import com.smartcampus.back.global.exception.CustomException;
@@ -155,16 +156,26 @@ public class AuthService {
         return verifyCode(request);
     }
 
-    public void updatePassword(PasswordChangeRequest request) {
+    public void updatePassword(UpdatePasswordRequest request) {
         User user = securityUtil.getCurrentUser();
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new CustomException(ErrorCode.LOGIN_PASSWORD_MISMATCH);
+        }
+
+        // ✅ 새 비밀번호로 변경
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
     }
 
+    // 회원탈퇴
     public void withdraw(PasswordConfirmRequest request) {
         User user = securityUtil.getCurrentUser();
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new CustomException("비밀번호가 일치하지 않습니다.");
         }
+
+        userRepository.delete(user); // 실제 DB에서 완전 삭제
     }
+
 }

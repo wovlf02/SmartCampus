@@ -3,6 +3,7 @@ package com.smartcampus.back.controller.auth;
 import com.smartcampus.back.dto.auth.request.*;
 import com.smartcampus.back.dto.auth.response.LoginResponse;
 import com.smartcampus.back.dto.auth.response.TokenResponse;
+import com.smartcampus.back.dto.user.request.UpdatePasswordRequest;
 import com.smartcampus.back.global.exception.CustomException;
 import com.smartcampus.back.global.response.ApiResponse;
 import com.smartcampus.back.service.auth.AuthService;
@@ -18,10 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * 인증 및 회원 관련 API를 제공하는 컨트롤러입니다.
@@ -189,7 +187,7 @@ public class AuthController {
      * 비밀번호 재설정 - 새 비밀번호 저장
      */
     @PutMapping("/password/update")
-    public ApiResponse<Void> updatePassword(@RequestBody @Valid PasswordChangeRequest request) {
+    public ApiResponse<Void> updatePassword(@RequestBody @Valid UpdatePasswordRequest request) {
         authService.updatePassword(request);
         return ApiResponse.ok();
     }

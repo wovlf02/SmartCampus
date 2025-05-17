@@ -3,11 +3,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import MapMainScreen from './src/screens/map/MapMainScreen';
 import SearchMainScreen from './src/screens/search/SearchMainScreen';
-import MyPageMainScreen from './src/screens/mypage/MyPageMainScreen';
+import MyPageMainScreen from './src/screens/mypage/MyPageScreen';
+import ProfileEditScreen from './src/screens/mypage/ProfileEditScreen';
+
 import IntroScreen from './src/screens/IntroScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
@@ -22,60 +24,54 @@ import PostEditScreen from './src/screens/community/PostEditScreen';
 import ChatRoomListScreen from './src/screens/community/ChatRoomListScreen';
 import ChatRoomScreen from './src/screens/community/ChatRoomScreen';
 import FriendScreen from './src/screens/community/FriendScreen';
-import CreateChatRoomScreen from "./src/screens/community/CreateChatRoomScreen";
+import CreateChatRoomScreen from './src/screens/community/CreateChatRoomScreen';
+import ChangePasswordScreen from "./src/screens/mypage/ChangePasswordScreen";
+import EditProfileImageScreen from "./src/screens/mypage/EditProfileImageScreen";
+import EditNicknameScreen from "./src/screens/mypage/EditNicknameScreen";
+import EditEmailScreen from "./src/screens/mypage/EditEmailScreen";
+import EditUsernameScreen from "./src/screens/mypage/EditUsernameScreen";
+import EditUniversityScreen from "./src/screens/mypage/EditUniversityScreen";
+import UniversitySelectScreen from "./src/screens/mypage/UniversitySelectScreen";
+import WithdrawalScreen from "./src/screens/mypage/WithdrawalScreen";
+import TimetableEditScreen from "./src/screens/mypage/TimetableEditScreen";
+import TimetableDeleteScreen from "./src/screens/mypage/TimetableDeleteScreen";
+import CorpusInputScreen from "./src/screens/mypage/CorpusInputScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-const CommunityStack = createDrawerNavigator();
-
+const Drawer = createDrawerNavigator();
+const MyPageStack = createStackNavigator();
 
 const CommunityNavigator = () => (
-    <CommunityStack.Navigator screenOptions={{ headerShown: false }}>
-        <CommunityStack.Screen name="PostList" component={PostListScreen} />
-        <CommunityStack.Screen name="CreatePost" component={CreatePostScreen} />
-        <CommunityStack.Screen name="PostDetail" component={PostDetailScreen} />
-        <CommunityStack.Screen name="PostEdit" component={PostEditScreen} />
-        <CommunityStack.Screen name="ChatRoomList" component={ChatRoomListScreen} />
-        <CommunityStack.Screen name="ChatRoom" component={ChatRoomScreen} />
-        <CommunityStack.Screen name="Friend" component={FriendScreen} />
-        <CommunityStack.Screen name="CreateChatRoom" component={CreateChatRoomScreen} />
-    </CommunityStack.Navigator>
+    <Drawer.Navigator screenOptions={{ headerShown: false }}>
+        <Drawer.Screen name="PostList" component={PostListScreen} />
+        <Drawer.Screen name="CreatePost" component={CreatePostScreen} />
+        <Drawer.Screen name="PostDetail" component={PostDetailScreen} />
+        <Drawer.Screen name="PostEdit" component={PostEditScreen} />
+        <Drawer.Screen name="ChatRoomList" component={ChatRoomListScreen} />
+        <Drawer.Screen name="ChatRoom" component={ChatRoomScreen} />
+        <Drawer.Screen name="Friend" component={FriendScreen} />
+        <Drawer.Screen name="CreateChatRoom" component={CreateChatRoomScreen} />
+    </Drawer.Navigator>
 );
-// --- 하단 탭 ---
-const screenOptions = ({ route }) => ({
-    tabBarIcon: ({ focused }) => {
-        let iconPath;
-        switch (route.name) {
-            case '길찾기':
-                iconPath = require('./src/assets/map.png');
-                break;
-            case '건물 검색':
-                iconPath = require('./src/assets/search.png');
-                break;
-            case '커뮤니티':
-                iconPath = require('./src/assets/community.png');
-                break;
-            case '마이페이지':
-                iconPath = require('./src/assets/mypage.png');
-                break;
-        }
-        return (
-            <Image
-                source={iconPath}
-                style={{
-                    width: 24,
-                    height: 24,
-                    resizeMode: 'contain',
-                    tintColor: focused ? '#007AFF' : undefined, // 선택 시만 컬러 적용
-                }}
-            />
-        );
-    },
-    headerShown: false,
-    tabBarShowLabel: true,
-    tabBarActiveTintColor: '#007AFF',
-    tabBarInactiveTintColor: '#C0C0C0',
-});
+
+const MyPageNavigator = () => (
+    <MyPageStack.Navigator screenOptions={{ headerShown: false }}>
+        <MyPageStack.Screen name="MyPageMain" component={MyPageMainScreen} />
+        <MyPageStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+        <MyPageStack.Screen name="TimetableEdit" component={TimetableEditScreen} />
+        <MyPageStack.Screen name="TimetableDelete" component={TimetableDeleteScreen} />
+        <MyPageStack.Screen name="CorpusInput" component={CorpusInputScreen} />
+        <MyPageStack.Screen name="ChangePassword" component={ChangePasswordScreen}/>
+        <MyPageStack.Screen name="EditProfileImage" component={EditProfileImageScreen} />
+        <MyPageStack.Screen name="EditNickname" component={EditNicknameScreen} />
+        <MyPageStack.Screen name="EditEmail" component={EditEmailScreen} />
+        <MyPageStack.Screen name="EditUsername" component={EditUsernameScreen} />
+        <MyPageStack.Screen name="EditUniversity" component={EditUniversityScreen} />
+        <MyPageStack.Screen name="UniversitySelect" component={UniversitySelectScreen} />
+        <MyPageStack.Screen name="Withdrawal" component={WithdrawalScreen} />
+    </MyPageStack.Navigator>
+);
 
 const MainTabNavigator = () => (
     <Tab.Navigator
@@ -85,7 +81,6 @@ const MainTabNavigator = () => (
             <View style={styles.tabContainer}>
                 {state.routes.map((route, index) => {
                     const isFocused = state.index === index;
-                    const { options } = descriptors[route.key];
                     const iconMap = {
                         '길찾기': require('./src/assets/map.png'),
                         '건물 검색': require('./src/assets/search.png'),
@@ -96,14 +91,14 @@ const MainTabNavigator = () => (
                     return (
                         <TouchableOpacity
                             key={route.name}
-                            accessibilityRole="button"
                             onPress={() => navigation.navigate(route.name)}
-                            style={[
-                                styles.tabItem,
-                                isFocused && styles.focusedTabItem,
-                            ]}
+                            style={[styles.tabItem, isFocused && styles.focusedTabItem]}
                         >
-                            <Image source={iconMap[route.name]} style={styles.icon} resizeMode="contain" />
+                            <Image
+                                source={iconMap[route.name]}
+                                style={styles.icon}
+                                resizeMode="contain"
+                            />
                             <Text style={styles.label}>{route.name}</Text>
                         </TouchableOpacity>
                     );
@@ -113,22 +108,11 @@ const MainTabNavigator = () => (
     >
         <Tab.Screen name="길찾기" component={MapMainScreen} />
         <Tab.Screen name="건물 검색" component={SearchMainScreen} />
-        <Tab.Screen
-            name="커뮤니티"
-            component={CommunityNavigator}
-            options={{
-                headerRight: () => (
-                    <TouchableOpacity onPress={() => navigation.openDrawer()} style={{ padding: 10 }}>
-                        <Image source={require('./src/assets/menu.png')} style={{ width: 24, height: 24 }} />
-                    </TouchableOpacity>
-                ),
-            }}
-        />
-        <Tab.Screen name="마이페이지" component={MyPageMainScreen} />
+        <Tab.Screen name="커뮤니티" component={CommunityNavigator} />
+        <Tab.Screen name="마이페이지" component={MyPageNavigator} />
     </Tab.Navigator>
 );
 
-// --- 최상단 Stack ---
 const App = () => (
     <NavigationContainer>
         <Stack.Navigator initialRouteName="Intro" screenOptions={{ headerShown: false }}>
@@ -157,7 +141,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     focusedTabItem: {
-        backgroundColor: '#E6F0FF', // 선택된 탭 배경색
+        backgroundColor: '#E6F0FF',
     },
     icon: {
         width: 26,
@@ -166,7 +150,8 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 12,
-        color: '#222', // 텍스트 색상 고정
+        color: '#222',
     },
 });
+
 export default App;

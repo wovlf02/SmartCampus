@@ -1,31 +1,34 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-
+import { useTranslation } from 'react-i18next';
+import '../../i18n'; // ✅ 두 단계 위로 올라가서 i18n.js 접근
 const IntroScreen = ({ navigation }) => {
+    const { t } = useTranslation();
+
     return (
         <View style={styles.container}>
             {/* 로고 및 앱 이름 */}
             <View style={styles.logoContainer}>
-                <Image source={require('../assets/intro.png')} style={styles.logo} />
-                <Text style={styles.appName}>StudyMate</Text>
+                <Image source={require('../assets/university.png')} style={styles.logo} />
+                <Text style={styles.appName}>SmartCampus</Text>
             </View>
 
             {/* 간략한 설명 */}
-            <Text style={styles.mainDescription}>학습 관리의 모든 것</Text>
+            <Text style={styles.mainDescription}>{t('intro.mainDescription')}</Text>
 
             {/* 주요 기능 아이콘 */}
             <View style={styles.iconSection}>
                 <View style={styles.iconCard}>
                     <Image source={require('../assets/community.png')} style={styles.icon} />
-                    <Text style={styles.iconLabel}>커뮤니티</Text>
+                    <Text style={styles.iconLabel}>{t('intro.community')}</Text>
                 </View>
                 <View style={styles.iconCard}>
                     <Image source={require('../assets/personal.png')} style={styles.icon} />
-                    <Text style={styles.iconLabel}>개인 학습 관리</Text>
+                    <Text style={styles.iconLabel}>{t('intro.courseManagement')}</Text>
                 </View>
                 <View style={styles.iconCard}>
-                    <Image source={require('../assets/group.png')} style={styles.icon} />
-                    <Text style={styles.iconLabel}>그룹 학습 관리</Text>
+                    <Image source={require('../assets/IotMap.png')} style={styles.icon} />
+                    <Text style={styles.iconLabel}>{t('intro.campusMap')}</Text>
                 </View>
             </View>
 
@@ -35,15 +38,23 @@ const IntroScreen = ({ navigation }) => {
                     style={styles.loginButton}
                     onPress={() => navigation.navigate('Login')}
                 >
-                    <Text style={styles.buttonText}>로그인</Text>
+                    <Text style={styles.buttonText}>{t('intro.login')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.signUpButton}
                     onPress={() => navigation.navigate('Register')}
                 >
-                    <Text style={styles.buttonText}>회원가입</Text>
+                    <Text style={styles.buttonText}>{t('intro.signup')}</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* 프론트 테스트 버튼 추가 */}
+            <TouchableOpacity
+                style={styles.testButton}
+                onPress={() => navigation.navigate('Main')}
+            >
+                <Text style={styles.buttonText}>{t('intro.testButton')}</Text>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -118,6 +129,13 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
         flex: 1,
         borderRadius: 25,
+    },
+    testButton: {
+        backgroundColor: '#FF9800',
+        paddingVertical: 15,
+        paddingHorizontal: 40,
+        borderRadius: 25,
+        marginTop: 20,
     },
     buttonText: {
         color: '#FFF',

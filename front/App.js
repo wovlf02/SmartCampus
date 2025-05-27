@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import './i18n';
+import { useTranslation } from 'react-i18next';
+
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -25,17 +28,19 @@ import ChatRoomListScreen from './src/screens/community/ChatRoomListScreen';
 import ChatRoomScreen from './src/screens/community/ChatRoomScreen';
 import FriendScreen from './src/screens/community/FriendScreen';
 import CreateChatRoomScreen from './src/screens/community/CreateChatRoomScreen';
-import ChangePasswordScreen from "./src/screens/mypage/ChangePasswordScreen";
-import EditProfileImageScreen from "./src/screens/mypage/EditProfileImageScreen";
-import EditNicknameScreen from "./src/screens/mypage/EditNicknameScreen";
-import EditEmailScreen from "./src/screens/mypage/EditEmailScreen";
-import EditUsernameScreen from "./src/screens/mypage/EditUsernameScreen";
-import EditUniversityScreen from "./src/screens/mypage/EditUniversityScreen";
-import UniversitySelectScreen from "./src/screens/mypage/UniversitySelectScreen";
-import WithdrawalScreen from "./src/screens/mypage/WithdrawalScreen";
-import TimetableEditScreen from "./src/screens/mypage/TimetableEditScreen";
-import TimetableDeleteScreen from "./src/screens/mypage/TimetableDeleteScreen";
-import CorpusInputScreen from "./src/screens/mypage/CorpusInputScreen";
+
+import ChangePasswordScreen from './src/screens/mypage/ChangePasswordScreen';
+import EditProfileImageScreen from './src/screens/mypage/EditProfileImageScreen';
+import EditNicknameScreen from './src/screens/mypage/EditNicknameScreen';
+import EditEmailScreen from './src/screens/mypage/EditEmailScreen';
+import EditUsernameScreen from './src/screens/mypage/EditUsernameScreen';
+import EditUniversityScreen from './src/screens/mypage/EditUniversityScreen';
+import UniversitySelectScreen from './src/screens/mypage/UniversitySelectScreen';
+import WithdrawalScreen from './src/screens/mypage/WithdrawalScreen';
+import TimetableEditScreen from './src/screens/mypage/TimetableEditScreen';
+import TimetableDeleteScreen from './src/screens/mypage/TimetableDeleteScreen';
+import CorpusInputScreen from './src/screens/mypage/CorpusInputScreen';
+import ChangeLanguageScreen from './src/screens/mypage/ChangeLanguageScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -62,7 +67,7 @@ const MyPageNavigator = () => (
         <MyPageStack.Screen name="TimetableEdit" component={TimetableEditScreen} />
         <MyPageStack.Screen name="TimetableDelete" component={TimetableDeleteScreen} />
         <MyPageStack.Screen name="CorpusInput" component={CorpusInputScreen} />
-        <MyPageStack.Screen name="ChangePassword" component={ChangePasswordScreen}/>
+        <MyPageStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         <MyPageStack.Screen name="EditProfileImage" component={EditProfileImageScreen} />
         <MyPageStack.Screen name="EditNickname" component={EditNicknameScreen} />
         <MyPageStack.Screen name="EditEmail" component={EditEmailScreen} />
@@ -70,48 +75,54 @@ const MyPageNavigator = () => (
         <MyPageStack.Screen name="EditUniversity" component={EditUniversityScreen} />
         <MyPageStack.Screen name="UniversitySelect" component={UniversitySelectScreen} />
         <MyPageStack.Screen name="Withdrawal" component={WithdrawalScreen} />
+        <MyPageStack.Screen name="ChangeLanguage" component={ChangeLanguageScreen} />
     </MyPageStack.Navigator>
 );
 
-const MainTabNavigator = () => (
-    <Tab.Navigator
-        initialRouteName="길찾기"
-        screenOptions={{ headerShown: false }}
-        tabBar={({ state, descriptors, navigation }) => (
-            <View style={styles.tabContainer}>
-                {state.routes.map((route, index) => {
-                    const isFocused = state.index === index;
-                    const iconMap = {
-                        '길찾기': require('./src/assets/map.png'),
-                        '건물 검색': require('./src/assets/search.png'),
-                        '커뮤니티': require('./src/assets/community.png'),
-                        '마이페이지': require('./src/assets/mypage.png'),
-                    };
+const MainTabNavigator = () => {
+    const { t } = useTranslation();
 
-                    return (
-                        <TouchableOpacity
-                            key={route.name}
-                            onPress={() => navigation.navigate(route.name)}
-                            style={[styles.tabItem, isFocused && styles.focusedTabItem]}
-                        >
-                            <Image
-                                source={iconMap[route.name]}
-                                style={styles.icon}
-                                resizeMode="contain"
-                            />
-                            <Text style={styles.label}>{route.name}</Text>
-                        </TouchableOpacity>
-                    );
-                })}
-            </View>
-        )}
-    >
-        <Tab.Screen name="길찾기" component={MapMainScreen} />
-        <Tab.Screen name="건물 검색" component={SearchMainScreen} />
-        <Tab.Screen name="커뮤니티" component={CommunityNavigator} />
-        <Tab.Screen name="마이페이지" component={MyPageNavigator} />
-    </Tab.Navigator>
-);
+    const routes = useMemo(() => [
+        { key: 'Map', label: t('tabs.map'), component: MapMainScreen, icon: require('./src/assets/map.png') },
+        { key: 'Search', label: t('tabs.search'), component: SearchMainScreen, icon: require('./src/assets/search.png') },
+        { key: 'Community', label: t('tabs.community'), component: CommunityNavigator, icon: require('./src/assets/community.png') },
+        { key: 'MyPage', label: t('tabs.mypage'), component: MyPageNavigator, icon: require('./src/assets/mypage.png') },
+    ], [t]);
+
+    return (
+        <Tab.Navigator
+            initialRouteName="Map"
+            screenOptions={{ headerShown: false }}
+            tabBar={({ state, navigation }) => (
+                <View style={styles.tabContainer}>
+                    {state.routes.map((route, index) => {
+                        const isFocused = state.index === index;
+                        const currentRoute = routes.find(r => r.key === route.name);
+
+                        return (
+                            <TouchableOpacity
+                                key={route.key || route.name}
+                                onPress={() => navigation.navigate(route.name)}
+                                style={[styles.tabItem, isFocused && styles.focusedTabItem]}
+                            >
+                                <Image
+                                    source={currentRoute?.icon}
+                                    style={styles.icon}
+                                    resizeMode="contain"
+                                />
+                                <Text style={styles.label}>{currentRoute?.label}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </View>
+            )}
+        >
+            {routes.map(({ key, component }) => (
+                <Tab.Screen key={key} name={key} component={component} />
+            ))}
+        </Tab.Navigator>
+    );
+};
 
 const App = () => (
     <NavigationContainer>

@@ -1,0 +1,32 @@
+{
+  "intro": {
+    "appName": "Smart Campus",
+    "mainDescription": "The beginning of a smart campus life",
+    "community": "Community",
+    "courseManagement": "Course Management",
+    "campusMap": "Campus Map",
+    "login": "Login",
+    "signup": "Sign Up",
+    "testButton": "Frontend Test"
+  },
+  "changeLanguage": {
+    "title": "Change Language",
+    "selected": "Current selected language"
+  },
+  "tabs": {
+    "map": "Directions",
+    "search": "Building Search",
+    "community": "Community",
+    "mypage": "My Page"
+  },
+  "profileEdit": {
+    "profileSettings": "Profile Settings",
+    "changeId": "Change ID",
+    "changeProfileImage": "Change Profile Image",
+    "changeNickname": "Change Nickname",
+    "changeEmail": "Change Email",
+    "changePassword": "Change Password",
+    "changeUniversity": "Change University",
+    "languageSettings": "Language Settings"
+  }
+}

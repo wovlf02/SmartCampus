@@ -1,0 +1,32 @@
+{
+  "intro": {
+    "appName": "スマートキャンパス",
+    "mainDescription": "スマートなキャンパスライフの始まり",
+    "community": "コミュニティ",
+    "courseManagement": "講義管理",
+    "campusMap": "キャンパスマップ",
+    "login": "ログイン",
+    "signup": "新規登録",
+    "testButton": "フロントテスト"
+  },
+  "changeLanguage": {
+    "title": "言語を変更する",
+    "selected": "現在の選択言語"
+  },
+  "tabs": {
+    "map": "ルート検索",
+    "search": "建物検索",
+    "community": "コミュニティ",
+    "mypage": "マイページ"
+  },
+  "profileEdit": {
+    "profileSettings": "プロフィール設定",
+    "changeId": "ID変更",
+    "changeProfileImage": "プロフィール画像変更",
+    "changeNickname": "ニックネーム変更",
+    "changeEmail": "メールアドレス変更",
+    "changePassword": "パスワード変更",
+    "changeUniversity": "大学変更",
+    "languageSettings": "言語設定"
+  }
+}

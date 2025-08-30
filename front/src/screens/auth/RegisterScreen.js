@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import {View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Dimensions, ScrollView, Image} from 'react-native';
+import {
+    View, Text, StyleSheet, TextInput, TouchableOpacity, Alert,
+    Dimensions, ScrollView, Image
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from '@react-navigation/native';
-import api from "../../api/api";
+import { useNavigation, useRoute } from '@react-navigation/native';
+import api from '../../api/api';
+import {launchImageLibrary} from "react-native-image-picker";
+import axios from "axios";
 
 const { width, height } = Dimensions.get('window');
 
@@ -12,86 +17,58 @@ const RegisterScreen = () => {
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
     const [isPasswordMatch, setIsPasswordMatch] = useState(null);
-    const [name, setName] = useState('');
-    const [phone, setPhone] = useState('');
+    const [nickname, setNickname] = useState('');
+    const [profileImage, setProfileImage] = useState(null);
+    const [selectedUniversity, setSelectedUniversity] = useState(null);
     const [email, setEmail] = useState('');
     const [emailDomain, setEmailDomain] = useState('');
     const [isCustomDomain, setIsCustomDomain] = useState(false);
     const [authInput, setAuthInput] = useState('');
     const [isAuthSent, setIsAuthSent] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(0); // 타이머 (초 단위)
+    const [timeLeft, setTimeLeft] = useState(0);
     const [isFormValid, setIsFormValid] = useState(false);
 
-    const navigation = useNavigation(); // navigation 객체 가져오기
+    const navigation = useNavigation();
+    const route = useRoute();
 
-    // 아이디 중복 확인
     const handleUserIdCheck = async () => {
-        try{
-            const response = await api.post('/auth/check-username', {username});
-            if(!response.data.success){
+        try {
+            const response = await api.post('/auth/check-username', { username });
+            const isAvailable = response.data.data; // data: true → 사용 가능, false → 중복
+
+            if (isAvailable) {
                 setIsUsernameValid(true);
-                Alert.alert('중복 확인', '사용 가능한 아이디입니다.');
+                Alert.alert('사용 가능', '사용 가능한 아이디입니다.');
             } else {
                 setIsUsernameValid(false);
-                Alert.alert('중복 확인', '이미 사용 중인 아이디입니다.');
+                Alert.alert('사용 불가', '이미 사용 중인 아이디입니다.');
             }
-        } catch(error){
+        } catch (error) {
             Alert.alert('오류', '아이디 확인 중 문제가 발생했습니다.');
         }
     };
 
-    // 비밀번호 입력 처리
+
     const handlePasswordChange = (text) => {
         setPassword(text);
         setIsPasswordMatch(text === passwordConfirm);
     };
 
-    // 비밀번호 입력 내용 일치 여부 확인
     const handlePasswordConfirmChange = (text) => {
         setPasswordConfirm(text);
         setIsPasswordMatch(password === text);
     };
 
-    // 전화번호 포맷팅
-    const handlePhoneChange = (text) => {
-        const formatted = text
-            .replace(/[^0-9]/g, '') // 숫자 외의 문자 제거
-            .replace(/^(\d{3})(\d{0,4})?(\d{0,4})?$/, (match, p1, p2, p3) => {
-                if (p3) return `${p1}-${p2}-${p3}`; // 3-4-4 형식
-                if (p2) return `${p1}-${p2}`; // 3-4 형식
-                return p1; // 3 형식
-            });
-        setPhone(formatted);
-    };
-
-    // 인증번호 발송
-    const sendEmailVerificationCode = async () => {
-        if (email && emailDomain) {
-            // 이메일 주소 조합
-            const fullEmail = `${email}@${emailDomain}`;
-
-            try {
-                const response = await api.post('/auth/send-email-code', { email: fullEmail });
-
-                if (!response.data.success) {
-                    setIsAuthSent(true); // 인증번호 발송 상태 설정
-                    setTimeLeft(300); // 타이머 300초 (5분) 설정
-                    Alert.alert('인증번호 발송', response.data.message);
-                } else {
-                    Alert.alert('오류', response.data.message);
-                }
-            } catch (error) {
-                Alert.alert('오류', '인증번호 발송 중 문제가 발생했습니다.');
+    const handleSelectProfileImage = async () => {
+        const result = await launchImageLibrary({ mediaType: 'photo' }, (res) => {
+            if (!res.didCancel && !res.errorCode && res.assets?.length > 0) {
+                setProfileImage(res.assets[0]);
             }
-        } else {
-            Alert.alert('오류', '이메일을 올바르게 입력해주세요.');
-        }
+        });
     };
 
-
-    // 이메일 도메인 선택 처리
     const handleDomainChange = (value) => {
-        if(value === 'custom'){
+        if (value === 'custom') {
             setIsCustomDomain(true);
             setEmailDomain('');
         } else {
@@ -100,7 +77,53 @@ const RegisterScreen = () => {
         }
     };
 
-    // 타이머 동작
+    const sendEmailVerificationCode = async () => {
+        const fullEmail = `${email}@${emailDomain}`;
+        try {
+            const response = await api.post('/auth/send-code', {
+                email: fullEmail,
+                type: 'register' // ✅ 필수: 인증 요청 목적 명시
+            });
+
+            if (response.data.success) {
+                setIsAuthSent(true);
+                setTimeLeft(180);
+                Alert.alert('인증번호 발송', response.data.message);
+            } else {
+                Alert.alert('실패', response.data.message);
+            }
+        } catch (error) {
+            console.error('이메일 인증 오류:', error);
+            Alert.alert('오류', '인증번호 발송 중 문제가 발생했습니다.');
+        }
+    };
+
+
+    const checkEmailVerificationCode = async () => {
+        const fullEmail = `${email}@${emailDomain}`;
+        try {
+            const response = await api.post('/auth/verify-code', {
+                email: fullEmail,
+                code: authInput,
+            });
+
+            if (response.data.success && response.data.data === true) {
+                Alert.alert('인증 완료', '이메일 인증이 완료되었습니다.');
+            } else {
+                Alert.alert('인증 실패', '인증번호가 올바르지 않습니다.');
+            }
+        } catch {
+            Alert.alert('오류', '인증번호 확인 중 문제가 발생했습니다.');
+        }
+    };
+
+
+    useEffect(() => {
+        if (route.params?.selectedUniversity) {
+            setSelectedUniversity(route.params.selectedUniversity);
+        }
+    }, [route.params?.selectedUniversity]);
+
     useEffect(() => {
         if (timeLeft > 0) {
             const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -108,54 +131,6 @@ const RegisterScreen = () => {
         }
     }, [timeLeft]);
 
-    // 인증번호 확인
-    const checkEmailVerificationCode = async () => {
-        try {
-            const fullEmail = `${email}@${emailDomain}`; // 이메일 주소 조합
-            const response = await api.post('/auth/verify-email-code', {
-                email: fullEmail,
-                code: authInput,
-            });
-
-            if (!response.data.success) {
-                Alert.alert('인증 성공', '인증이 완료되었습니다.');
-            } else {
-                Alert.alert('인증 실패', '인증번호가 일치하지 않습니다.');
-            }
-        } catch (error) {
-            console.error('인증번호 확인 오류:', error);
-            Alert.alert('오류', '인증번호 확인 중 문제가 발생했습니다.');
-        }
-    };
-
-
-    // 회원가입 처리
-    const handleRegister = async () => {
-        const userData = {
-            username,
-            password,
-            name,
-            phone,
-            email: `${email}@${emailDomain}`,
-        };
-        try{
-            const response = await api.post('/auth/register', userData);
-            if(!response.data.success){
-                Alert.alert('회원가입 성공', response.data.message, [
-                    {
-                        text: '확인',
-                        onPress: () => navigation.navigate('Login'),
-                    },
-                ]);
-            } else {
-                Alert.alert('회원가입 실패', response.data.message);
-            }
-        } catch(error){
-            Alert.alert('오류', '회원가입 중 문제가 발생했습니다.')
-        }
-    };
-
-    // 회원가입 버튼 활성화 여부 확인
     useEffect(() => {
         setIsFormValid(
             username &&
@@ -163,49 +138,99 @@ const RegisterScreen = () => {
             password &&
             passwordConfirm &&
             isPasswordMatch &&
-            name &&
-            phone &&
+            nickname &&
+            selectedUniversity &&
             email &&
             emailDomain &&
             authInput
         );
-    }, [username, isUsernameValid, password, passwordConfirm, isPasswordMatch, name, phone, email, emailDomain, authInput]);
+    }, [username, isUsernameValid, password, passwordConfirm, isPasswordMatch, nickname, selectedUniversity, email, emailDomain, authInput]);
+
+
+    const handleRegister = async () => {
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('password', password);
+        formData.append('email', `${email}@${emailDomain}`);
+        formData.append('nickname', nickname);
+        formData.append('universityId', selectedUniversity.id);
+
+        if (profileImage) {
+            formData.append('profileImage', {
+                uri: profileImage.uri,
+                type: profileImage.type || 'image/jpeg',
+                name: profileImage.fileName || 'profile.jpg',
+            });
+        } else {
+            formData.append('profileImage', {
+                uri: Image.resolveAssetSource(require('../../assets/profile.png')).uri,
+                type: 'image/png',
+                name: 'profile.png',
+            });
+        }
+
+        try {
+            const response = await axios.post('http://192.168.0.2:8080/api/auth/register', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            const { success, message, data } = response.data;
+            console.log('📦 회원가입 응답:', response.data);
+
+            if (success) {
+                Alert.alert('회원가입 성공', data || message, [
+                    { text: '확인', onPress: () => navigation.navigate('Login') }
+                ]);
+            } else {
+                Alert.alert('회원가입 실패', message || '알 수 없는 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            console.error('❌ 회원가입 중 오류:', error);
+            Alert.alert('오류', '회원가입 중 문제가 발생했습니다.');
+        }
+    };
+
+
+
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>회원가입</Text>
 
-            <View style={styles.inputGroupRow}>
-                {/* 아이디 입력 */}
+            <View style={styles.universityRow}>
+                <Text style={styles.selectedUniversityText}>
+                    {selectedUniversity?.name || '대학교를 선택해주세요'}
+                </Text>
+                <TouchableOpacity
+                    style={styles.searchButton}
+                    onPress={() => navigation.navigate('UniversitySearch', {
+                        onSelect: (univ) => {
+                            setSelectedUniversity(univ);
+                            navigation.goBack();
+                        }
+                    })}
+                >
+                    <Text style={styles.buttonText}>검색</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* 아이디 + 중복확인 */}
+            <View style={styles.inputWithButton}>
                 <TextInput
-                    style={[
-                        styles.inputSmall,
-                        isUsernameValid === false ? styles.inputError : {},
-                        isUsernameValid === true ? styles.inputSuccess : {},
-                    ]}
+                    style={styles.flexInput}
                     placeholder="아이디"
                     value={username}
                     onChangeText={setUsername}
                 />
-                {/* 체크/엑스 표시 */}
-                {isUsernameValid !== null && (
-                    <Image
-                        source={
-                            isUsernameValid
-                                ? require('../../assets/check.png')
-                                : require('../../assets/x.png')
-                        }
-                        style={styles.idValidationIcon}
-                    />
-                )}
-                {/* 중복확인 버튼 */}
-                <TouchableOpacity style={styles.checkButtonInline} onPress={handleUserIdCheck}>
+                <TouchableOpacity style={styles.inlineButton} onPress={handleUserIdCheck}>
                     <Text style={styles.buttonText}>중복확인</Text>
                 </TouchableOpacity>
             </View>
 
 
-            {/* 비밀번호 입력 */}
+            {/* 비밀번호 */}
             <TextInput
                 style={styles.input}
                 placeholder="비밀번호"
@@ -213,54 +238,41 @@ const RegisterScreen = () => {
                 value={password}
                 onChangeText={handlePasswordChange}
             />
-            {/* 비밀번호 확인 */}
-            <View style={styles.inputGroup}>
-                <TextInput
-                    style={[
-                        styles.input,
-                        isPasswordMatch === false ? styles.inputError : {},
-                        isPasswordMatch === true ? styles.inputSuccess : {},
-                    ]}
-                    placeholder="비밀번호 재입력"
-                    secureTextEntry
-                    value={passwordConfirm}
-                    onChangeText={handlePasswordConfirmChange}
-                />
-                {isPasswordMatch !== null && (
-                    <Image
-                        source={
-                            isPasswordMatch
-                                ? require('../../assets/check.png')
-                                : require('../../assets/x.png')
-                        }
-                        style={styles.passwordValidationIcon}
-                    />
-                )}
+            <TextInput
+                style={[styles.input, isPasswordMatch === false && styles.inputError]}
+                placeholder="비밀번호 확인"
+                secureTextEntry
+                value={passwordConfirm}
+                onChangeText={handlePasswordConfirmChange}
+            />
 
+            {/* 닉네임 */}
+            <TextInput
+                style={styles.input}
+                placeholder="닉네임"
+                value={nickname}
+                onChangeText={setNickname}
+            />
+
+            {/* 프로필 이미지 선택 영역 */}
+            <View style={styles.profileContainer}>
+                {profileImage ? (
+                    <Image source={{ uri: profileImage.uri }} style={styles.profilePreview} />
+                ) : (
+                    <Text style={styles.profilePlaceholder}>선택된 이미지 없음</Text>
+                )}
+                <TouchableOpacity style={styles.profileButton} onPress={handleSelectProfileImage}>
+                    <Text style={styles.buttonText}>프로필 선택</Text>
+                </TouchableOpacity>
             </View>
 
-            {/* 이름 입력 */}
-            <TextInput
-                style={styles.input}
-                placeholder="이름"
-                value={name}
-                onChangeText={setName}
-            />
 
-            {/* 전화번호 입력 */}
-            <TextInput
-                style={styles.input}
-                placeholder="전화번호"
-                keyboardType="number-pad"
-                value={phone}
-                onChangeText={handlePhoneChange}
-            />
 
             {/* 이메일 입력 */}
             <View style={styles.emailContainer}>
                 <TextInput
                     style={styles.emailInput}
-                    placeholder="아이디"
+                    placeholder="이메일"
                     value={email}
                     onChangeText={setEmail}
                 />
@@ -268,7 +280,7 @@ const RegisterScreen = () => {
                 {isCustomDomain ? (
                     <TextInput
                         style={styles.emailInput}
-                        placeholder=""
+                        placeholder="직접 입력"
                         value={emailDomain}
                         onChangeText={setEmailDomain}
                     />
@@ -289,33 +301,29 @@ const RegisterScreen = () => {
                 )}
             </View>
 
-            {/* 인증번호 발송 */}
+            {/* 인증번호 전송 */}
             <TouchableOpacity style={styles.authButton} onPress={sendEmailVerificationCode}>
                 <Text style={styles.buttonText}>인증번호 발송</Text>
             </TouchableOpacity>
 
-            {/* 인증번호 입력 및 타이머 */}
+            {/* 인증번호 입력 */}
             {isAuthSent && (
                 <View style={styles.inputGroupRow}>
-                    {/* 인증번호 입력 칸 */}
                     <TextInput
                         style={styles.inputSmall}
                         placeholder="인증번호"
-                        keyboardType="number-pad"
                         value={authInput}
                         onChangeText={setAuthInput}
+                        keyboardType="number-pad"
                     />
-                    {/* 타이머 */}
                     <Text style={styles.timerInline}>
                         {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
                     </Text>
-                    {/* 인증번호 확인 버튼 */}
                     <TouchableOpacity style={styles.checkButtonInline} onPress={checkEmailVerificationCode}>
                         <Text style={styles.buttonText}>확인</Text>
                     </TouchableOpacity>
                 </View>
             )}
-
 
             {/* 회원가입 버튼 */}
             <TouchableOpacity
@@ -499,6 +507,83 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: width * 0.02,
+    },
+    universityRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 16,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        height: 50,
+    },
+    searchButton: {
+        backgroundColor: '#007BFF',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 6,
+        marginLeft: 10,
+    },
+    inputWithButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        borderRadius: height * 0.015,
+        height: height * 0.06,
+        width: '100%',
+        marginBottom: height * 0.02,
+        paddingHorizontal: width * 0.03,
+    },
+    flexInput: {
+        flex: 1,
+        fontSize: 14,
+        color: '#000',
+    },
+    inlineButton: {
+        backgroundColor: '#007BFF',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 6,
+        marginLeft: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: height * 0.045, // 작게 조정
+        minWidth: 70,
+    },
+    selectedUniversityText: {
+        flex: 1,
+        fontSize: 14,
+        color: '#333',
+        paddingLeft: width * 0.01,
+    },
+    profileContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: height * 0.02,
+    },
+    profilePlaceholder: {
+        fontSize: 14,
+        color: '#888',
+        flex: 1,
+    },
+    profileButton: {
+        backgroundColor: '#007BFF',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 6,
+        marginLeft: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    profilePreview: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#EEE',
     },
 
 });

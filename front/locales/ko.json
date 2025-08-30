@@ -1,0 +1,32 @@
+{
+  "intro": {
+    "appName": "스마트캠퍼스",
+    "mainDescription": "스마트한 캠퍼스 라이프의 시작",
+    "community": "커뮤니티",
+    "courseManagement": "강의 관리",
+    "campusMap": "캠퍼스 맵",
+    "login": "로그인",
+    "signup": "회원가입",
+    "testButton": "프론트 테스트"
+  },
+  "changeLanguage": {
+    "title": "언어 변경",
+    "selected": "현재 선택된 언어"
+  },
+  "tabs": {
+    "map": "길찾기",
+    "search": "건물 검색",
+    "community": "커뮤니티",
+    "mypage": "마이페이지"
+  },
+  "profileEdit": {
+    "profileSettings": "프로필 설정",
+    "changeId": "아이디 변경",
+    "changeProfileImage": "프로필 이미지 변경",
+    "changeNickname": "닉네임 변경",
+    "changeEmail": "이메일 변경",
+    "changePassword": "비밀번호 변경",
+    "changeUniversity": "대학교 변경",
+    "languageSettings": "언어 설정"
+  }
+}

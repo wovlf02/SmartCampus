@@ -1,169 +1,294 @@
-# 🌟 Smart Campus
+# 🏫 Smart Campus
 
-## 🛠️ 프레임워크 및 라이브러리
+> React Native + Spring Boot + Oracle 기반 교내 네비게이션 및 커뮤니티 앱
 
-| 기술              | 버전       |
-|------------------|-----------|
-| 🌱 Spring Boot      | 3.4.2     |
-| ☕ Java             | 21        |
-| 📱 React Native     | 0.76.6    |
-| 🖥️ Node.js          | >= 18     |
-| ⚙️ Gradle           | Wrapper   |
+[![React Native](https://img.shields.io/badge/React%20Native-0.76.6-61DAFB?logo=react)](https://reactnative.dev/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
+[![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk)](https://openjdk.org/)
+[![Oracle](https://img.shields.io/badge/Oracle-23c-F80000?logo=oracle)](https://www.oracle.com/database/)
 
 ---
 
-## 📖 프로젝트 개요
+## 📋 목차
 
-**Smart Campus** 프로젝트는 IoT 기술을 활용하여 캠퍼스 내 사용자 경험을 혁신하는 것을 목표로 합니다. 이 프로젝트는 다음과 같은 주요 기능을 제공합니다:
-
-- 🚶 **실시간 경로 안내**: T-map API를 활용하여 캠퍼스 내 효율적인 이동을 지원합니다.
-- 🤖 **AI 챗봇 기반 정보 검색**: Dialogflow를 활용하여 건물 및 관련 정보를 쉽게 검색할 수 있습니다.
-- 💬 **커뮤니티 및 소통**: 사용자 간 실시간 채팅 및 커뮤니티 게시판을 통해 정보 공유를 촉진합니다.
-- 🎯 **개인화된 사용자 경험**: 시간표 기반 알림 및 맞춤형 이동 경로를 제공합니다.
-- 🌍 **다국어 지원**: 다양한 언어를 지원하여 외국인 유학생의 접근성을 향상시킵니다.
-
-이 프로젝트는 모바일 클라이언트(React Native)와 Java Spring Boot 백엔드로 구성되어 있으며, 사용자 중심의 스마트 캠퍼스 환경을 구현합니다.
+- [프로젝트 소개](#-프로젝트-소개)
+- [주요 기능](#-주요-기능)
+- [기술 스택](#-기술-스택)
+- [프로젝트 구조](#-프로젝트-구조)
+- [시작하기](#-시작하기)
+- [환경 변수](#-환경-변수)
+- [API 문서](#-api-문서)
+- [테스트](#-테스트)
+- [기여 가이드](#-기여-가이드)
+- [라이선스](#-라이선스)
 
 ---
 
-## 🗂️ 프로젝트 구조
+## 🎯 프로젝트 소개
+
+**Smart Campus**는 대학 캠퍼스 내 사용자 경험을 혁신하는 통합 모바일 애플리케이션입니다.
+
+### 개발 배경
+- 넓은 캠퍼스에서 초행자의 길찾기 어려움
+- 분산된 캠퍼스 정보 접근의 불편함
+- 재학생 간 소통 및 정보 공유 채널 부재
+- 외국인 유학생의 언어 장벽
+
+### 프로젝트 목표
+- 실시간 캠퍼스 내 경로 안내 제공
+- 커뮤니티 기반 정보 공유 플랫폼 구축
+- 다국어 지원으로 외국인 유학생 접근성 향상
+- 개인화된 시간표 기반 알림 서비스
+
+---
+
+## ✨ 주요 기능
+
+| 기능 | 설명 |
+|------|------|
+| 🗺️ **캠퍼스 지도** | T Map SDK 기반 실시간 위치 표시 및 경로 안내 |
+| 🔍 **건물 검색** | 캠퍼스 내 건물 및 시설 검색 |
+| 📝 **커뮤니티 게시판** | 게시글 작성/수정/삭제, 댓글, 좋아요, 신고 기능 |
+| 💬 **실시간 채팅** | WebSocket 기반 1:1 및 그룹 채팅 |
+| 👥 **친구 관리** | 친구 요청/수락/차단, 친구 목록 관리 |
+| 📅 **시간표 관리** | 개인 시간표 등록 및 관리 |
+| 👤 **마이페이지** | 프로필 수정, 비밀번호 변경, 대학 설정 |
+| 🌐 **다국어 지원** | i18n 기반 다국어 UI 지원 |
+| 🔐 **인증** | JWT 기반 로그인, 소셜 로그인(카카오/네이버/구글/GitHub) |
+
+---
+
+## 🛠️ 기술 스택
+
+### Frontend (Mobile)
+
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| React Native | 0.76.6 | 크로스 플랫폼 모바일 앱 |
+| JavaScript | ES6+ | 프로그래밍 언어 |
+| React Navigation | 7.x | 화면 네비게이션 |
+| Axios | 1.7.9 | HTTP 클라이언트 |
+| i18next | 25.2.1 | 다국어 지원 |
+| SockJS + STOMP | - | 실시간 WebSocket 통신 |
+
+### Backend (API Server)
+
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| Spring Boot | 3.4.2 | 백엔드 프레임워크 |
+| Java | 21 (LTS) | 프로그래밍 언어 |
+| Spring Security | 6.x | 인증/인가 |
+| Spring Data JPA | - | ORM, 데이터 액세스 |
+| Spring WebSocket | - | 실시간 채팅 |
+| JWT (jjwt) | 0.11.5 | 토큰 기반 인증 |
+
+### Database & Infrastructure
+
+| 기술 | 버전 | 용도 |
+|------|------|------|
+| Oracle Database | 23c | 메인 관계형 데이터베이스 |
+| Redis | - | 세션/토큰 캐싱 |
+| Gradle | Wrapper | 빌드 도구 |
+
+---
+
+## 📁 프로젝트 구조
 
 ```
-Smart Campus/
-├── back/                  # Spring Boot 애플리케이션
-│   ├── build.gradle       # Java 21, Spring Boot 3.4.2 의존성
-│   ├── gradlew            # Gradle Wrapper 실행 파일 (Linux/Mac)
-│   ├── gradlew.bat        # Gradle Wrapper 실행 파일 (Windows)
-│   ├── settings.gradle    # Gradle 설정 파일
+SmartCampus/
+├── back/                           # Spring Boot 백엔드
+│   ├── src/main/java/com/smartcampus/back/
+│   │   ├── BackApplication.java    # 애플리케이션 진입점
+│   │   ├── config/                 # 설정 (Auth, Socket, Web)
+│   │   ├── controller/             # REST API 컨트롤러
+│   │   │   ├── auth/               # 인증 API
+│   │   │   ├── community/          # 커뮤니티 API (게시글, 채팅, 친구)
+│   │   │   ├── user/               # 사용자 API
+│   │   │   └── schedule/           # 시간표 API
+│   │   ├── dto/                    # 요청/응답 DTO
+│   │   ├── entity/                 # JPA 엔티티
+│   │   │   ├── auth/               # User, University
+│   │   │   ├── chat/               # ChatRoom, ChatMessage
+│   │   │   ├── community/          # Post, Comment, Like
+│   │   │   ├── friend/             # Friend, FriendRequest
+│   │   │   └── schedule/           # Timetable
+│   │   ├── repository/             # JPA 리포지토리
+│   │   ├── service/                # 비즈니스 로직
+│   │   ├── handler/                # WebSocket 핸들러
+│   │   ├── security/               # 보안 설정
+│   │   └── global/                 # 공통 유틸, 예외처리
+│   ├── build.gradle                # Gradle 빌드 설정
+│   └── gradlew                     # Gradle Wrapper
+│
+├── front/                          # React Native 프론트엔드
+│   ├── App.js                      # 앱 진입점 및 네비게이션
 │   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/smartcampus/back/
-│   │   │   │   ├── BackApplication.java  # 애플리케이션 진입점
-│   │   │   │   ├── config/               # 설정 파일
-│   │   │   │   ├── service/              # 비즈니스 로직
-│   │   │   │   ├── repository/           # 데이터베이스 리포지토리
-│   │   │   │   ├── entity/               # 데이터베이스 엔티티
-│   │   │   │   ├── handler/              # WebSocket 핸들러
-│   │   │   │   └── dto/                  # 데이터 전송 객체
-│   │   ├── resources/                    # 리소스 파일 (application.yml 등)
-│   │   └── test/                         # 테스트 파일
-│   └── gradle/                           # Gradle Wrapper 관련 파일
-│       ├── wrapper/
-│       │   ├── gradle-wrapper.jar        # Gradle Wrapper JAR 파일
-│       │   └── gradle-wrapper.properties # Gradle Wrapper 설정 파일
-├── front/                 # React Native 모바일 앱
-│   ├── package.json       # 의존성 및 스크립트
-│   ├── App.js             # 앱 네비게이션 및 화면 등록
-│   ├── src/
-│   │   ├── screens/       # 화면 구현
-│   │   │   ├── auth/      # 인증 관련 화면
-│   │   │   ├── community/ # 커뮤니티 관련 화면
-│   │   │   ├── map/       # 지도 관련 화면
-│   │   │   ├── mypage/    # 마이페이지 관련 화면
-│   │   ├── api/           # 백엔드 API 호출
-│   │   ├── assets/        # 정적 자산 (이미지, 아이콘 등)
-│   ├── android/           # Android 네이티브 프로젝트 파일
-│   │   ├── app/           # Android 앱 소스 코드
-│   │   ├── gradle/        # Gradle 설정 파일
-│   │   └── build.gradle   # Android 빌드 설정
-│   ├── ios/               # iOS 네이티브 프로젝트 파일
-│   │   ├── app/           # iOS 앱 소스 코드
-│   │   ├── Podfile        # CocoaPods 의존성 파일
-│   │   └── Info.plist     # iOS 설정 파일
-└── README.md              # 프로젝트 문서
+│   │   ├── api/                    # API 통신 모듈
+│   │   │   └── api.js              # Axios 인스턴스
+│   │   ├── screens/                # 화면 컴포넌트
+│   │   │   ├── auth/               # 인증 화면
+│   │   │   ├── community/          # 커뮤니티 화면
+│   │   │   ├── map/                # 지도 화면
+│   │   │   ├── mypage/             # 마이페이지 화면
+│   │   │   └── search/             # 검색 화면
+│   │   └── assets/                 # 이미지, 아이콘
+│   ├── locales/                    # 다국어 리소스
+│   ├── android/                    # Android 네이티브
+│   ├── ios/                        # iOS 네이티브
+│   └── package.json                # npm 의존성
+│
+├── docs/                           # 프로젝트 문서
+│   ├── 01_overview/                # 프로젝트 개요
+│   ├── 02_architecture/            # 아키텍처 설계
+│   ├── 03_database/                # 데이터베이스 설계
+│   ├── 04_api/                     # API 명세
+│   ├── 05_screens/                 # 화면 설계
+│   └── 06_development/             # 개발 가이드
+│
+└── README.md                       # 프로젝트 문서 (현재 파일)
 ```
 
 ---
 
-## 🔑 주요 기능
+## 🚀 시작하기
 
-| 기능                     | 설명                                           |
-|--------------------------|------------------------------------------------|
-| 🚗 T-map 경로 안내          | T-map API를 활용한 실시간 경로 탐색 및 안내    |
-| 🏢 건물 찾기 및 챗봇        | Dialogflow 기반 AI 챗봇으로 건물 검색 지원     |
-| 💬 커뮤니티 및 채팅         | 사용자 간 실시간 채팅 및 커뮤니티 게시판       |
-| 🛠️ 마이페이지 및 설정       | 프로필 수정, 시간표 등록 및 다국어 지원        |
+### 사전 요구사항
 
----
+- **Java 21** (JDK)
+- **Node.js 22** (LTS)
+- **Oracle Database XE 21c**
+- **Redis** (선택사항, 토큰 캐싱용)
+- **Android Studio** (Android 빌드)
+- **Xcode** (iOS 빌드, macOS 필요)
 
-## 🎯 기대효과 및 향후 계획
+### 백엔드 실행
 
-| 기대효과                 | 향후 계획                                      |
-|--------------------------|------------------------------------------------|
-| 🎯 사용자 편의성 향상       | 실내외 통합 길안내로 초행 방문자 문제 해결     |
-| 🌍 외국인 접근성 강화       | 다국어 UI 지원 및 실시간 번역 기능 추가        |
-| 🕒 개인화된 캠퍼스 생활 지원| 시간표 기반 도착 알림 및 맞춤형 이동 경로 제공|
-| 🤖 AI 기반 정보 탐색 편의   | 자연어 대화형 챗봇으로 정보 접근 시간 단축     |
-| 📊 데이터 기반 서비스 개선  | 사용자 행동 로그 기반 UI/UX 개선 및 공간 활용  |
+```bash
+# 프로젝트 루트에서
+cd back
 
----
+# 빌드
+./gradlew clean build
 
-## ⚙️ 환경 및 전제 조건
-
-### 개발 머신
-- ☕ Java 21 (Gradle Toolchain이 빌드에 사용됨)
-- 🖥️ Node.js >= 18
-- 📱 Android SDK (Android 빌드용)
-- 🍎 Xcode (iOS 빌드용, macOS 필요)
-
-### 백엔드 환경 변수
-- 🔑 `SPRING_DATASOURCE_URL` — JDBC URL (MySQL/Oracle)
-- 🔑 `SPRING_DATASOURCE_USERNAME`
-- 🔑 `SPRING_DATASOURCE_PASSWORD`
-- 🔒 `JWT_SECRET` — JWT 서명 비밀
-- 🔗 `SPRING_REDIS_HOST` / `SPRING_REDIS_PORT`
-- 📧 `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_HOST` / `MAIL_PORT`
-
----
-
-## 🚀 빠른 시작
-
-### 백엔드 (Windows PowerShell 예)
-
-```powershell
-cd back; .\gradlew.bat clean build; .\gradlew.bat bootRun
+# 실행
+./gradlew bootRun
 ```
 
-### 프론트엔드 (Android 에뮬레이터 예)
+### 프론트엔드 실행
 
-```powershell
+```bash
+# 프로젝트 루트에서
 cd front
+
+# 의존성 설치
 npm install
-npx react-native start ; # Metro 번들러 시작
-npx react-native run-android
-```
 
-또는 `package.json`에 등록된 스크립트를 사용:
+# iOS 의존성 설치 (macOS)
+cd ios && pod install && cd ..
 
-```powershell
-cd front
+# Metro 번들러 시작
+npm start
+
+# Android 실행
 npm run android
+
+# iOS 실행 (macOS)
+npm run ios
 ```
+
+---
+
+## ⚙️ 환경 변수
+
+### 백엔드 (application.yml)
+
+```yaml
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}           # jdbc:oracle:thin:@localhost:1521:xe
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  redis:
+    host: ${SPRING_REDIS_HOST}              # localhost
+    port: ${SPRING_REDIS_PORT}              # 6379
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+
+jwt:
+  secret: ${JWT_SECRET}                     # JWT 서명 비밀키
+```
+
+### 프론트엔드 (api.js)
+
+```javascript
+const BASE_URL = 'http://192.168.0.2:8080/api';  // 백엔드 서버 주소
+```
+
+---
+
+## 📖 API 문서
+
+주요 API 엔드포인트:
+
+| 분류 | 엔드포인트 | 설명 |
+|------|-----------|------|
+| 인증 | `POST /api/auth/login` | 로그인 |
+| 인증 | `POST /api/auth/register` | 회원가입 |
+| 사용자 | `GET /api/users/me` | 내 정보 조회 |
+| 사용자 | `PATCH /api/users/nickname` | 닉네임 변경 |
+| 게시글 | `GET /api/community/posts` | 게시글 목록 |
+| 게시글 | `POST /api/community/posts` | 게시글 작성 |
+| 채팅 | `GET /api/chat/rooms` | 채팅방 목록 |
+| 채팅 | `WS /ws/chat` | 채팅 WebSocket |
+| 시간표 | `GET /api/schedule/timetable` | 시간표 조회 |
+
+> 상세 API 명세는 [docs/04_api/](./docs/04_api/) 폴더를 참조하세요.
 
 ---
 
 ## 🧪 테스트
 
-- **백엔드**: Gradle 테스트 실행 `./gradlew.bat test`
-- **프론트엔드**: Jest 테스트 실행 `npm test`
+### 백엔드 테스트
+
+```bash
+cd back
+./gradlew test
+```
+
+### 프론트엔드 테스트
+
+```bash
+cd front
+npm test
+```
 
 ---
 
 ## 🤝 기여 가이드
 
-1. 📝 이슈 생성 및 설명 작성
-2. 🌿 브랜치: `feature/` 또는 `fix/` 접두사 사용
-3. ✅ PR 제출 전 빌드 및 테스트 통과 확인
+1. 이슈 생성 및 설명 작성
+2. 브랜치 생성: `feature/기능명` 또는 `fix/버그명`
+3. 커밋 메시지 컨벤션:
+   - `feat:` 새로운 기능
+   - `fix:` 버그 수정
+   - `docs:` 문서 수정
+   - `refactor:` 리팩토링
+   - `test:` 테스트 추가/수정
+4. PR 제출 전 빌드 및 테스트 통과 확인
 
 ---
 
-## 📜 라이센스
+## 📜 라이선스
 
-이 프로젝트는 `LICENSE` 파일을 포함하지 않습니다. MIT 라이센스를 추가하거나 조직 정책에 따라 설정하세요.
+이 프로젝트는 MIT 라이선스를 따릅니다.
 
 ---
 
 ## 📚 참고 문서
 
-- [📱 React Native README](https://github.com/facebook/react-native)
-- [🚀 Expo README](https://github.com/expo/expo)
+- [React Native 공식 문서](https://reactnative.dev/)
+- [Spring Boot 공식 문서](https://spring.io/projects/spring-boot)
+- [Oracle Database 문서](https://docs.oracle.com/en/database/)

@@ -118,6 +118,8 @@ Content-Type: multipart/form-data
 
 **설명**: 비밀번호 확인 후 계정 삭제 처리
 
+**참고**: `DELETE /api/auth/withdraw` 엔드포인트도 동일한 기능 제공
+
 ---
 
 **최종 업데이트**: 2026년 1월 30일

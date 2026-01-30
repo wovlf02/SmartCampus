@@ -136,6 +136,15 @@ Content-Type: multipart/form-data
 | file | MultipartFile | 업로드할 파일 |
 | roomId | Long | 채팅방 ID |
 
+**응답**
+```json
+{
+  "fileUrl": "/uploads/chatroom/uuid_filename.jpg",
+  "fileName": "original_filename.jpg",
+  "fileType": "image/jpeg"
+}
+```
+
 ---
 
 ## 4. WebSocket 연결

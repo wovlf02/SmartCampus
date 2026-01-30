@@ -8,16 +8,17 @@
 
 - **파일**: `src/screens/map/MapMainScreen.js`
 - **기능**:
-  - Kakao Map API 기반 지도 표시
+  - Kakao Map API 기반 지도 표시 (JavaScript SDK)
   - GPS 현재 위치 마커 표시
   - WebView로 HTML 지도 렌더링
   - 위치 권한 요청 (Android/iOS)
+  - 백엔드에 현재 위치 정보 전송
 - **사용 API**:
-  - `POST /api/location/current` - 현재 위치 정보 전송
+  - `POST /api/location/current` - 현재 위치 정보 전송 (위도, 경도)
 - **라이브러리**:
   - `react-native-webview`: 카카오맵 HTML 렌더링
   - `react-native-geolocation-service`: GPS 위치 조회
-  - `react-native-permissions`: 위치 권한 관리
+  - `react-native-permissions`: 위치 권한 관리 (선택)
 
 ### 주요 구현
 

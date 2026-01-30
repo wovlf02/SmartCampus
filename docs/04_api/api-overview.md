@@ -45,6 +45,7 @@ http://{server}:8080/api
 | 분류 | Base Path | 설명 | 문서 |
 |------|-----------|------|------|
 | 인증 | `/api/auth` | 로그인, 회원가입, 토큰, 비밀번호 재설정 | [api-auth.md](./api-auth.md) |
+| 대학교 | `/api/universities` | 대학교 검색 | [api-auth.md](./api-auth.md) |
 | 사용자 | `/api/users` | 사용자 정보 조회/수정 | [api-user.md](./api-user.md) |
 | 게시글 | `/api/community/posts` | 게시글 CRUD, 검색, 즐겨찾기 | [api-community.md](./api-community.md) |
 | 댓글 | `/api/community/comments`, `/api/community/replies` | 댓글/대댓글 관리 | [api-community.md](./api-community.md) |
@@ -84,6 +85,7 @@ http://{server}:8080/api
 | `POST /api/auth/find-username/*` | 아이디 찾기 |
 | `POST /api/auth/password/*` | 비밀번호 재설정 |
 | `POST /api/auth/reissue` | 토큰 재발급 |
+| `GET /api/universities/search` | 대학교 검색 |
 
 ---
 

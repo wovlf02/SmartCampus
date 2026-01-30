@@ -129,10 +129,10 @@
 |------|------|
 | **Frontend** | React Native 0.76.6, JavaScript, React Navigation 7.x |
 | **Backend** | Spring Boot 3.4.2, Java 21, Spring Security, Spring Data JPA |
-| **Database** | Oracle Database XE 21c, Redis (캐싱) |
+| **Database** | Oracle Database 23c, Redis (캐싱) |
 | **Runtime** | Node.js 22 (LTS) |
-| **실시간 통신** | WebSocket (SockJS + STOMP) |
-| **지도** | T Map SDK |
+| **실시간 통신** | WebSocket (SockJS) |
+| **지도** | Kakao Map API |
 | **다국어** | i18next |
 
 > 상세 기술 스택은 [기술 스택 문서](../02_architecture/tech-stack.md)를 참조하세요.

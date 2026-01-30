@@ -70,6 +70,25 @@ Content-Type: multipart/form-data
 ### 1.10 조회수 증가
 **POST** `/api/community/posts/{postId}/view`
 
+### 1.11 실시간 문제풀이방 자동 완성
+**POST** `/api/community/posts/auto-fill`
+
+AI 기반 게시글 자동 완성 기능
+
+```json
+{
+  "problemReference": "문제 참조 정보"
+}
+```
+
+**응답**
+```json
+{
+  "title": "자동 생성된 제목",
+  "content": "자동 생성된 내용"
+}
+```
+
 ---
 
 ## 2. 즐겨찾기

@@ -92,7 +92,7 @@
 | **Controller** | HTTP 요청 처리 계층 |
 | **REST API** | HTTP 기반 자원 중심 API 설계 방식 |
 | **i18n (Internationalization)** | 다국어 지원 |
-| **T Map SDK** | SK텔레콤 티맵 지도 서비스 SDK |
+| **Kakao Map API** | 카카오 지도 서비스 API |
 
 ---
 

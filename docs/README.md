@@ -51,7 +51,7 @@ docs/
 | **대상 사용자** | 대학생, 외국인 유학생, 캠퍼스 방문자 |
 | **프레임워크** | React Native 0.76.6 (Frontend) / Spring Boot 3.4.2 (Backend) |
 | **언어** | JavaScript (Frontend) / Java 21 (Backend) |
-| **데이터베이스** | Oracle Database XE 21c |
+| **데이터베이스** | Oracle Database 23c |
 | **런타임** | Node.js 22 (LTS) |
 
 ---
@@ -90,16 +90,19 @@ docs/
 
 | 도메인 | 컨트롤러 | 엔티티 | 상태 |
 |--------|----------|--------|------|
-| 인증 | AuthController, UniversityController | User, University | ✅ |
+| 인증 | AuthController | User, University | ✅ |
+| 대학교 | UniversityController | University | ✅ |
 | 사용자 | UserController | - | ✅ |
-| 게시글 | PostController | Post, Attachment | ✅ |
+| 게시글 | PostController | Post, Attachment, PostFavorite | ✅ |
 | 댓글 | CommentController | Comment, Reply | ✅ |
 | 좋아요 | LikeController | Like | ✅ |
-| 신고 | ReportController | Report | ✅ |
+| 신고 | ReportController | Report, ReportStatus | ✅ |
 | 차단 | BlockController | Block | ✅ |
-| 채팅 | ChatRoomController, ChatMessageController, DirectChatController | ChatRoom, ChatMessage, ChatParticipant, ChatRead | ✅ |
-| 친구 | FriendController | Friend, FriendRequest, FriendBlock, FriendReport | ✅ |
-| 시간표 | TimetableController | Timetable | ✅ |
+| 채팅 | ChatRoomController, ChatMessageController, DirectChatController, ChatAttachmentController | ChatRoom, ChatMessage, ChatParticipant, ChatRead, ChatRoomType, ChatMessageType | ✅ |
+| 친구 | FriendController | Friend, FriendRequest, FriendRequestStatus, FriendBlock, FriendReport, FriendReportStatus | ✅ |
+| 시간표 | TimetableController | Timetable, DayOfWeek | ✅ |
+| 첨부파일 | AttachmentController, FileUploadController | Attachment | ✅ |
+| 관리자 | AdminReportController | - | ✅ |
 
 ### Frontend (React Native)
 

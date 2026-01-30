@@ -17,7 +17,7 @@
                                 ▼
                     ┌───────────────────────┐
                     │      REST API         │ ◄── HTTP/HTTPS
-                    │      WebSocket        │ ◄── SockJS + STOMP
+                    │      WebSocket        │ ◄── SockJS (Raw WebSocket)
                     └───────────────────────┘
                                 │
                                 ▼

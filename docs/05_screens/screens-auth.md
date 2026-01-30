@@ -89,7 +89,7 @@
   - 대학교 목록 검색
   - 대학교 선택 → 이전 화면으로 결과 전달
 - **사용 API**:
-  - `GET /api/auth/universities?keyword=검색어`
+  - `GET /api/universities/search?keyword=검색어`
 
 ---
 

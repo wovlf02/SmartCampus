@@ -10,17 +10,18 @@
 
 | 컬럼 | 타입 | 제약조건 | 설명 |
 |------|------|----------|------|
-| ID | NUMBER(19) | PK, AUTO | 시간표 항목 ID |
+| ID | NUMBER(19) | PK, AUTO_INCREMENT | 시간표 항목 ID |
 | USER_ID | NUMBER(19) | FK, NOT NULL | 사용자 ID |
 | SUBJECT_NAME | VARCHAR2(100) | NOT NULL | 과목명 |
 | PROFESSOR_NAME | VARCHAR2(50) | NULL | 담당 교수 |
 | LOCATION | VARCHAR2(100) | NULL | 강의실 |
-| DAY_OF_WEEK | VARCHAR2(20) | NOT NULL | 요일 (MONDAY~FRIDAY) |
+| DAY_OF_WEEK | VARCHAR2(20) | NOT NULL | 요일 (MONDAY~SUNDAY) |
 | START_PERIOD | NUMBER(2) | NOT NULL | 시작 교시 (1부터) |
 | END_PERIOD | NUMBER(2) | NOT NULL | 종료 교시 |
 
 **참고**:
 - `GenerationType.IDENTITY` 사용 (Oracle SEQUENCE와 다름)
+- 테이블명: `timetables` (소문자)
 - 시간표 저장 시 기존 데이터 전체 삭제 후 새로 저장
 
 **연관관계**

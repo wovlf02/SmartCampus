@@ -146,7 +146,7 @@
 
 | 서비스 | 용도 |
 |--------|------|
-| **T Map SDK** | 지도 표시 및 경로 안내 |
+| **Kakao Map API** | 지도 표시 및 현재 위치 마커 |
 | **Kakao Login API** | 카카오 소셜 로그인 |
 | **Naver Login API** | 네이버 소셜 로그인 |
 | **Google Login API** | 구글 소셜 로그인 |

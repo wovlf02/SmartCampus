@@ -8,7 +8,7 @@
 
 | 구성요소 | 내용 |
 |----------|------|
-| **Database** | Oracle Database XE 21c |
+| **Database** | Oracle Database 23c |
 | **ORM** | Spring Data JPA |
 | **Driver** | ojdbc11 (23.3.0.23.09) |
 | **ID 전략** | Sequence (Oracle) |

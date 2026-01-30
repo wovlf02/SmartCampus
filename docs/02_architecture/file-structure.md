@@ -43,24 +43,32 @@ back/
     │   │   │
     │   │   ├── controller/               # REST API 컨트롤러
     │   │   │   ├── admin/               # 관리자 API
+    │   │   │   │   └── AdminReportController.java
     │   │   │   ├── auth/                # 인증 API
     │   │   │   │   ├── AuthController.java
     │   │   │   │   └── UniversityController.java
     │   │   │   ├── community/           # 커뮤니티 API
     │   │   │   │   ├── attachment/
+    │   │   │   │   │   └── AttachmentController.java
     │   │   │   │   ├── block/
+    │   │   │   │   │   └── BlockController.java
     │   │   │   │   ├── chat/
     │   │   │   │   │   ├── ChatAttachmentController.java
     │   │   │   │   │   ├── ChatMessageController.java
     │   │   │   │   │   ├── ChatRoomController.java
     │   │   │   │   │   └── DirectChatController.java
     │   │   │   │   ├── comment/
+    │   │   │   │   │   └── CommentController.java
     │   │   │   │   ├── friend/
+    │   │   │   │   │   └── FriendController.java
     │   │   │   │   ├── like/
+    │   │   │   │   │   └── LikeController.java
     │   │   │   │   ├── post/
     │   │   │   │   │   └── PostController.java
     │   │   │   │   └── report/
+    │   │   │   │       └── ReportController.java
     │   │   │   ├── file/                # 파일 API
+    │   │   │   │   └── FileUploadController.java
     │   │   │   ├── schedule/            # 시간표 API
     │   │   │   │   └── TimetableController.java
     │   │   │   └── user/                # 사용자 API

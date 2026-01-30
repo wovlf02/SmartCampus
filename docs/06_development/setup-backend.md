@@ -10,7 +10,7 @@
 |------|------|
 | JDK | 21 LTS |
 | Gradle | Wrapper 포함 |
-| Oracle | XE 21c |
+| Oracle | 23c |
 | Redis | 선택사항 |
 
 ---

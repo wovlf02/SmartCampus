@@ -144,7 +144,7 @@
   - `POST /api/friends/block/{userId}` - 차단
   - `DELETE /api/friends/block/{userId}` - 차단 해제
   - `POST /api/friends/report/{userId}` - 신고
-  - `POST /api/chat/rooms` - 1:1 채팅방 생성
+  - `POST /api/chat/direct/start` - 1:1 채팅 시작 (Direct Chat)
 
 ---
 

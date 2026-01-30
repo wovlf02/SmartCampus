@@ -203,4 +203,31 @@ Access Token 재발급 (Sliding Session 방식)
 
 ---
 
+## 11. 대학교 검색
+
+### GET /api/universities/search
+키워드로 대학교 검색
+
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| keyword | String | 검색할 대학교명 키워드 |
+
+**응답**
+```json
+[
+  {
+    "id": 1,
+    "name": "서울대학교",
+    "domain": "snu.ac.kr"
+  },
+  {
+    "id": 2,
+    "name": "서울시립대학교",
+    "domain": "uos.ac.kr"
+  }
+]
+```
+
+---
+
 **최종 업데이트**: 2026년 1월 30일

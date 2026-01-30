@@ -26,6 +26,7 @@ docs/
 │   ├── api-user.md            # 사용자 API
 │   ├── api-community.md       # 커뮤니티 API
 │   ├── api-chat.md            # 채팅 API
+│   ├── api-friend.md          # 친구 API
 │   └── api-schedule.md        # 시간표 API
 ├── 05_screens/            # 화면 설계
 │   ├── screens-overview.md    # 화면 구조 개요
@@ -57,16 +58,16 @@ docs/
 
 ## 🚀 핵심 기능
 
-| 기능 | 설명 |
-|------|------|
-| **캠퍼스 지도** | T Map SDK 기반 실시간 위치 표시 및 경로 안내 |
-| **건물 검색** | 캠퍼스 내 건물 및 시설 검색 |
-| **커뮤니티 게시판** | 게시글 작성/수정/삭제, 댓글, 좋아요, 신고 |
-| **실시간 채팅** | WebSocket 기반 1:1 및 그룹 채팅 |
-| **친구 관리** | 친구 요청/수락/차단 |
-| **시간표 관리** | 개인 시간표 등록 및 관리 |
-| **다국어 지원** | i18n 기반 다국어 UI |
-| **인증** | JWT 기반 로그인, 소셜 로그인 |
+| 기능 | 설명 | 구현 상태 |
+|------|------|----------|
+| **캠퍼스 지도** | Kakao Map API 기반 실시간 위치 표시 | ✅ 완료 |
+| **건물 검색** | 캠퍼스 내 건물 및 시설 검색 | 🔄 진행 중 |
+| **커뮤니티 게시판** | 게시글 CRUD, 댓글/대댓글, 좋아요, 즐겨찾기, 신고, 차단 | ✅ 완료 |
+| **실시간 채팅** | WebSocket 기반 1:1 및 그룹 채팅, 읽음 표시 | ✅ 완료 |
+| **친구 관리** | 친구 요청/수락/거절, 차단, 신고 | ✅ 완료 |
+| **시간표 관리** | 개인 시간표 등록 및 관리 (교시 기반) | ✅ 완료 |
+| **다국어 지원** | i18n 기반 다국어 UI (한국어, English) | ✅ 완료 |
+| **인증** | JWT 기반 로그인, 이메일 인증, 비밀번호 재설정 | ✅ 완료 |
 
 ---
 
@@ -80,6 +81,36 @@ docs/
 6. [API 명세](./04_api/api-overview.md)
 7. [화면 설계](./05_screens/screens-overview.md)
 8. [개발 환경 설정](./06_development/setup-backend.md)
+
+---
+
+## 📊 구현 현황
+
+### Backend (Spring Boot)
+
+| 도메인 | 컨트롤러 | 엔티티 | 상태 |
+|--------|----------|--------|------|
+| 인증 | AuthController, UniversityController | User, University | ✅ |
+| 사용자 | UserController | - | ✅ |
+| 게시글 | PostController | Post, Attachment | ✅ |
+| 댓글 | CommentController | Comment, Reply | ✅ |
+| 좋아요 | LikeController | Like | ✅ |
+| 신고 | ReportController | Report | ✅ |
+| 차단 | BlockController | Block | ✅ |
+| 채팅 | ChatRoomController, ChatMessageController, DirectChatController | ChatRoom, ChatMessage, ChatParticipant, ChatRead | ✅ |
+| 친구 | FriendController | Friend, FriendRequest, FriendBlock, FriendReport | ✅ |
+| 시간표 | TimetableController | Timetable | ✅ |
+
+### Frontend (React Native)
+
+| 카테고리 | 화면 수 | 상태 |
+|----------|---------|------|
+| 인증 | 6개 | ✅ |
+| 지도 | 2개 | ✅ |
+| 검색 | 1개 | 🔄 |
+| 커뮤니티 | 8개 | ✅ |
+| 마이페이지 | 14개 | ✅ |
+| **합계** | **31개** | |
 
 ---
 
